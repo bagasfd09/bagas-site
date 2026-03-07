@@ -21,111 +21,116 @@ A full-stack personal portfolio website built with Next.js 14, TypeScript, Tailw
 - **Auth**: JWT + bcrypt (HTTP-only cookies)
 - **Markdown**: react-markdown + remark-gfm + rehype-highlight
 
-## Local Development
+## Environment Variables
 
-### 1. Prerequisites
+Copy `.env.example` to `.env.local` and fill in the values:
+
+```bash
+cp .env.example .env.local
+```
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection URL |
+| `ADMIN_PASSWORD` | Yes | Admin login password |
+| `JWT_SECRET` | Yes | JWT signing secret (min 32 chars) |
+| `NEXT_PUBLIC_SITE_URL` | Yes | Your site URL for SEO |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | No | Google service account for Search Console |
+| `GOOGLE_SERVICE_ACCOUNT_KEY` | No | Google service account private key |
+| `GOOGLE_SEARCH_CONSOLE_SITE` | No | Search Console property (e.g. `sc-domain:yourdomain.com`) |
+| `GOOGLE_SITE_VERIFICATION` | No | Google site verification code |
+| `GITHUB_TOKEN` | No | GitHub token for project sync (5000 req/hr) |
+
+## Getting Started
+
+### Option 1: Docker (Recommended)
+
+The easiest way to run everything — app + PostgreSQL in one command.
+
+```bash
+# Start app and database
+docker compose up -d --build
+
+# First time: run database seed
+docker compose exec app npx prisma db seed
+
+# View logs
+docker compose logs -f app
+
+# Stop
+docker compose down
+
+# Stop and delete database volume
+docker compose down -v
+```
+
+App runs at http://localhost:3000
+
+### Option 2: Local Development
+
+#### Prerequisites
 
 - Node.js 18+
-- PostgreSQL database
+- PostgreSQL running locally
 
-### 2. Install dependencies
+#### Setup
 
 ```bash
+# Install dependencies
 npm install
-```
 
-### 3. Environment variables
+# Setup environment
+cp .env.example .env.local
+# Edit .env.local with your values
 
-Create `.env.local`:
+# Run database migrations
+npx prisma migrate dev
 
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/bagas_portfolio"
-ADMIN_PASSWORD="your-secure-password"
-JWT_SECRET="your-jwt-secret-at-least-32-chars"
-NEXT_PUBLIC_SITE_URL="https://bagas.dev"
-```
-
-### 4. Database setup
-
-```bash
-npx prisma migrate dev --name init
+# Seed database
 npx prisma db seed
-```
 
-### 5. Run dev server
-
-```bash
+# Start dev server
 npm run dev
 ```
 
-## Deploy to Vercel
+App runs at http://localhost:3000
 
-### Step 1: Push to GitHub
+## Deploy to Production
+
+### Option A: Docker (VPS / Cloud Server)
+
+1. Push to GitHub
+2. SSH into your server
+3. Clone the repo and create `.env.local` with production values
+4. Run:
 
 ```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/bagas-site.git
-git branch -M main
-git push -u origin main
+docker compose up -d --build
+docker compose exec app npx prisma db seed
 ```
 
-### Step 2: Set up a PostgreSQL database
+For HTTPS, put Nginx or Caddy in front as a reverse proxy to port 3000.
 
-Use one of these hosted PostgreSQL providers (all have free tiers):
-
-- **Neon** (recommended): https://neon.tech — generous free tier, serverless PostgreSQL
-- **Supabase**: https://supabase.com — free tier with 500MB
-- **Railway**: https://railway.app — free trial credits
-
-After creating a database, copy the connection URL (looks like `postgresql://user:pass@host:5432/dbname`).
-
-### Step 3: Deploy on Vercel
+### Option B: Vercel
 
 1. Go to https://vercel.com and sign in with GitHub
-2. Click **"Add New Project"**
-3. Import your `bagas-site` repository
-4. In **Environment Variables**, add:
-
-| Variable | Value |
-|----------|-------|
-| `DATABASE_URL` | Your hosted PostgreSQL connection URL |
-| `ADMIN_PASSWORD` | Your admin password |
-| `JWT_SECRET` | A random 32+ character secret |
-| `NEXT_PUBLIC_SITE_URL` | `https://bagas.dev` (or your Vercel URL) |
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | (optional) Google service account email |
-| `GOOGLE_SERVICE_ACCOUNT_KEY` | (optional) Google service account private key |
-| `GOOGLE_SEARCH_CONSOLE_SITE` | (optional) `sc-domain:bagas.dev` |
-| `GOOGLE_SITE_VERIFICATION` | (optional) Google verification code |
-
-5. Click **Deploy**
-
-### Step 4: Run database migrations
-
-After the first deploy, run migrations on your hosted database. You can do this locally by temporarily pointing `DATABASE_URL` to your hosted DB:
+2. Click **"Add New Project"** and import `bagas-site`
+3. Add environment variables (see table above)
+4. Click **Deploy**
+5. After deploy, run migrations on your hosted DB:
 
 ```bash
 DATABASE_URL="your-hosted-db-url" npx prisma migrate deploy
 DATABASE_URL="your-hosted-db-url" npx prisma db seed
 ```
 
-Or use Vercel CLI:
+#### Connect custom domain
 
-```bash
-npx vercel env pull .env.production.local
-npx prisma migrate deploy
-npx prisma db seed
-```
+1. In Vercel project settings → **Domains** → add `bagas.dev`
+2. Update DNS records as shown by Vercel
+3. SSL is automatic
 
-### Step 5: Connect custom domain (optional)
-
-1. In Vercel project settings, go to **Domains**
-2. Add `bagas.dev`
-3. Update your DNS records as shown by Vercel
-4. SSL is automatic
-
-### Step 6: Submit sitemap to Google
+#### Submit sitemap
 
 1. Go to [Google Search Console](https://search.google.com/search-console)
 2. Click **Sitemaps** in the sidebar
@@ -142,3 +147,9 @@ npm run db:migrate   # Run migrations
 npm run db:seed      # Seed database
 npm run db:studio    # Open Prisma Studio
 ```
+
+## Admin Panel
+
+Login at `/admin` with username `admin` and the password you set in `ADMIN_PASSWORD`.
+
+Features: Dashboard, Posts, Notes, Projects, Skills, About Me editor, Site Settings, Analytics.
