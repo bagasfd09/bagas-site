@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <rect width="180" height="180" rx="40" fill="#fdf6e3"/>
+
+  <!-- Beam light -->
+  <path d="M65 108 L90 150 L115 108" fill="#d4a24c" opacity="0.2"/>
+
+  <!-- UFO body (dome) -->
+  <ellipse cx="90" cy="68" rx="28" ry="22" fill="#3b3225"/>
+
+  <!-- UFO saucer -->
+  <ellipse cx="90" cy="80" rx="55" ry="18" fill="#b4762c"/>
+
+  <!-- UFO saucer highlight -->
+  <ellipse cx="90" cy="74" rx="50" ry="10" fill="#d4a24c" opacity="0.4"/>
+
+  <!-- UFO bottom rim -->
+  <ellipse cx="90" cy="90" rx="38" ry="8" fill="#8a5a1e"/>
+
+  <!-- Window lights -->
+  <circle cx="62" cy="80" r="5.5" fill="#fdf6e3"/>
+  <circle cx="90" cy="80" r="5.5" fill="#fdf6e3"/>
+  <circle cx="118" cy="80" r="5.5" fill="#fdf6e3"/>
+
+  <!-- Top antenna -->
+  <line x1="90" y1="46" x2="90" y2="34" stroke="#3b3225" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="90" cy="30" r="5.5" fill="#d4a24c"/>
+
+  <!-- Beam dots -->
+  <circle cx="80" cy="122" r="2.5" fill="#d4a24c" opacity="0.5"/>
+  <circle cx="100" cy="132" r="2.5" fill="#d4a24c" opacity="0.4"/>
+  <circle cx="90" cy="142" r="3" fill="#d4a24c" opacity="0.3"/>
+</svg>
