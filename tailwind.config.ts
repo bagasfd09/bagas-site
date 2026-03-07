@@ -10,13 +10,12 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['Georgia', 'Newsreader', 'Times New Roman', 'serif'],
+        serif: ['DM Serif Display', 'Georgia', 'serif'],
         sans: [
+          'DM Sans',
           '-apple-system',
           'BlinkMacSystemFont',
           'Segoe UI',
-          'Helvetica',
-          'Arial',
           'sans-serif',
         ],
         mono: ['Menlo', 'Monaco', 'Courier New', 'monospace'],
