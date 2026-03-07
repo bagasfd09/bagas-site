@@ -151,50 +151,44 @@ ENVEOF
 nano .env
 ```
 
-### Step 3: Setup HTTPS with Nginx + Certbot
+### Step 3: Setup HTTPS with Nginx
+
+Use Nginx as reverse proxy to app port `3000`.
 
 ```bash
-# Install Nginx
+# Install Nginx + Certbot plugin
 sudo apt update
-sudo apt install -y nginx
+sudo apt install -y nginx python3-certbot-nginx
 
-# Create Nginx config
+# Nginx site config
 sudo tee /etc/nginx/sites-available/bagas.dev << 'EOF'
 server {
     listen 80;
+    listen [::]:80;
     server_name bagas.dev www.bagas.dev;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
     }
 }
 EOF
 
-# Enable the site
-sudo ln -sf /etc/nginx/sites-available/bagas.dev /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/bagas.dev /etc/nginx/sites-enabled/bagas.dev
 sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t
-sudo systemctl restart nginx
+sudo nginx -t && sudo systemctl reload nginx
 
-# Install Certbot for SSL
-sudo apt install -y certbot python3-certbot-nginx
-
-# Get SSL certificate (make sure DNS A record points to VPS IP first)
-sudo certbot --nginx -d bagas.dev -d www.bagas.dev
-
-# Auto-renewal is enabled by default, verify with:
-sudo certbot renew --dry-run
+# Issue HTTPS cert + redirect
+sudo certbot --nginx -d bagas.dev -d www.bagas.dev --redirect
 ```
 
-Make sure your domain DNS A record points to your VPS IP before running Certbot.
+Make sure your domain DNS A record points to your VPS IP before requesting cert.
 
 ### Step 4: First deploy
 
