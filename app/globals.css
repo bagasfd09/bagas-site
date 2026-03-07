@@ -137,6 +137,60 @@ pre {
   border-right: 1px solid var(--sidebar-border);
 }
 
+/* ─── UFO ANIMATION ────────────────────────────────────────── */
+.ufo-scene {
+  display: inline-flex;
+  position: relative;
+}
+
+/* UFO floating */
+@keyframes ufo-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.ufo-hover {
+  animation: ufo-float 3s ease-in-out infinite;
+}
+
+/* Person abduction — loops every 6s */
+@keyframes ufo-abduct-person {
+  0%, 10% { transform: translateY(0); opacity: 1; }
+  30% { transform: translateY(-16px); opacity: 0.6; }
+  40% { transform: translateY(-28px); opacity: 0; }
+  70% { transform: translateY(-28px); opacity: 0; }
+  85% { transform: translateY(0); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Cow abduction — loops every 6s, offset */
+@keyframes ufo-abduct-cow {
+  0%, 20% { transform: translateY(0); opacity: 1; }
+  40% { transform: translateY(-14px); opacity: 0.5; }
+  50% { transform: translateY(-26px); opacity: 0; }
+  75% { transform: translateY(-26px); opacity: 0; }
+  90% { transform: translateY(0); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Beam pulse */
+@keyframes ufo-beam-pulse {
+  0%, 100% { opacity: 0.15; }
+  30%, 50% { opacity: 0.35; }
+}
+
+.ufo-person {
+  animation: ufo-abduct-person 6s ease-in-out infinite;
+}
+
+.ufo-cow {
+  animation: ufo-abduct-cow 6s ease-in-out 0.8s infinite;
+}
+
+.ufo-scene path {
+  animation: ufo-beam-pulse 3s ease-in-out infinite;
+}
+
 /* ─── SIDEBAR SECTIONS ─────────────────────────────────────── */
 .sb-section-label {
   font-size: 0.65rem;
