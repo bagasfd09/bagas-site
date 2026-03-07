@@ -98,7 +98,7 @@ export default function Sidebar({ settings }: SidebarProps) {
           className="flex items-center gap-2 hover:no-underline"
           style={{ color: 'var(--text)' }}
         >
-          <svg width="30" height="30" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="45" height="45" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M22 38 L32 56 L42 38" fill="#4ade80" opacity="0.25"/>
               <ellipse cx="32" cy="24" rx="10" ry="8" fill="#166534"/>
               <ellipse cx="32" cy="28" rx="20" ry="7" fill="#22c55e"/>
@@ -188,7 +188,7 @@ export default function Sidebar({ settings }: SidebarProps) {
           className="flex items-center gap-2 hover:no-underline"
           style={{ color: 'var(--text)' }}
         >
-          <svg width="26" height="26" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="36" height="36" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M22 38 L32 56 L42 38" fill="#4ade80" opacity="0.25"/>
               <ellipse cx="32" cy="24" rx="10" ry="8" fill="#166534"/>
               <ellipse cx="32" cy="28" rx="20" ry="7" fill="#22c55e"/>
