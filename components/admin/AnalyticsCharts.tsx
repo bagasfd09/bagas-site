@@ -284,14 +284,16 @@ export default function AnalyticsCharts() {
             <div className="ana-card-head">
               <span className="ana-card-title">Traffic</span>
               <div className="ana-chart-legend">
-                <span className="ana-leg"><span className="ana-leg-line" style={{ background: 'var(--admin-accent)' }} /> Views</span>
-                <span className="ana-leg"><span className="ana-leg-line" style={{ background: 'var(--admin-info)', opacity: 0.5 }} /> Visitors</span>
+                <span className="ana-leg"><span className="ana-leg-line" style={{ background: '#14b8a6' }} /> Views</span>
+                <span className="ana-leg"><span className="ana-leg-line" style={{ background: '#64748b', opacity: 0.5 }} /> Visitors</span>
               </div>
             </div>
             <MiniChart
               data={daily.map((d) => ({ date: d.date, views: d.views, visitors: d.visitors }))}
               valueKey="views"
               secondKey="visitors"
+              color="#14b8a6"
+              secondColor="#64748b"
             />
           </div>
 

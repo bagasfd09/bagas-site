@@ -2413,13 +2413,13 @@ a.skill-card:hover {
 }
 .ana-row-bar {
   height: 100%;
-  background: var(--admin-accent);
+  background: #14b8a6;
   border-radius: 3px;
   transition: width 0.4s ease;
   min-width: 3px;
   opacity: 0.55;
 }
-.ana-row-bar--b { background: var(--admin-info); }
+.ana-row-bar--b { background: #64748b; }
 .ana-row-val {
   font-size: 0.75rem;
   font-weight: 600;
