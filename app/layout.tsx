@@ -1,0 +1,106 @@
+import type { Metadata } from 'next'
+import { ThemeProvider } from 'next-themes'
+import NextTopLoader from 'nextjs-toploader'
+import './globals.css'
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bagas.dev'
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'Bagas — Software Engineer & Backend Developer from Indonesia',
+    template: '%s — bagas.dev',
+  },
+  description:
+    'Bagas is a software engineer and backend developer from Indonesia specializing in Go, TypeScript, Node.js, and modern web development. Read articles on backend engineering, system design, and open-source projects.',
+  keywords: [
+    'Bagas',
+    'software engineer',
+    'backend engineer',
+    'backend developer',
+    'golang developer',
+    'Go developer',
+    'TypeScript developer',
+    'Node.js developer',
+    'software developer Indonesia',
+    'backend engineer Indonesia',
+    'web developer Indonesia',
+    'full-stack developer',
+    'open source',
+    'Next.js',
+    'React',
+    'Prisma',
+    'PostgreSQL',
+    'system design',
+    'API development',
+  ],
+  authors: [{ name: 'Bagas', url: siteUrl }],
+  creator: 'Bagas',
+  publisher: 'Bagas',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: siteUrl,
+    siteName: 'bagas.dev',
+    title: 'Bagas — Software Engineer & Backend Developer from Indonesia',
+    description:
+      'Software engineer specializing in Go, TypeScript, and backend development. Building modern web apps and writing about engineering.',
+    images: [
+      {
+        url: `${siteUrl}/images/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: 'bagas.dev — Software Engineer & Backend Developer',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Bagas — Software Engineer & Backend Developer',
+    description:
+      'Software engineer from Indonesia specializing in Go, TypeScript, and backend development.',
+    images: [`${siteUrl}/images/og-image.png`],
+  },
+  alternates: {
+    canonical: siteUrl,
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || '',
+  },
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body>
+        <NextTopLoader color="#b4762c" height={2} showSpinner={false} shadow={false} crawlSpeed={300} speed={300} easing="ease" />
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  )
+}

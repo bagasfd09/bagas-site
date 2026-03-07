@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String   @db.Text
+  description String?
+  icon        String?
+  tags        String[]
+  category    String   @default("technical")
+  type        String   @default("post")
+  published   Boolean  @default(false)
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String   @db.Text
+
+  // Image
+  image       String?
+
+  // Links
+  demoUrl     String?
+  repo        String?
+  articleUrl  String?
+
+  // GitHub data (auto-fetched)
+  githubStars     Int?
+  githubForks     Int?
+  githubCreatedAt DateTime?
+  githubUpdatedAt DateTime?
+  githubLanguage  String?
+  githubSyncedAt  DateTime?
+
+  // Metadata
+  tech        String[]
+  year        Int?
+  featured    Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sortOrder])
+  @@index([featured])
+}
+
+model Skill {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  icon      String?
+  url       String?
+  category   String   @default("language")
+  level      String   @default("intermediate")
+  yearsOfExp Float?
+  sortOrder  Int      @default(0)
+  featured   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([sortOrder])
+  @@index([featured])
+}
+
+model PageView {
+  id          String   @id @default(cuid())
+  path        String
+  ipHash      String
+  country     String   @default("Unknown")
+  countryCode String   @default("XX")
+  referrer    String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([ipHash, createdAt])
+  @@index([country])
+  @@index([path])
+}
+
+model SiteSettings {
+  id         String   @id @default("main")
+  name       String   @default("Bagas")
+  siteName   String   @default("bagas.dev")
+  tagline    String   @default("Software developer and open-source enthusiast")
+  heroIntro  String   @db.Text @default("I'm a software developer and open-source enthusiast from Indonesia. I build modern web apps and write about development on this blog.")
+  heroImage  String?
+  bio        String   @db.Text
+  sidebarBio String   @default("I'm Bagas, software developer and open-source enthusiast from Indonesia. This is my corner of the universe. 🚀")
+  github     String   @default("")
+  linkedin   String   @default("")
+  twitter    String   @default("")
+  email      String   @default("")
+  bluesky    String   @default("")
+  rssEnabled Boolean  @default(true)
+  updatedAt  DateTime @updatedAt
+}
