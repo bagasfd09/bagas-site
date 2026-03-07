@@ -99,14 +99,14 @@ export default function Sidebar({ settings }: SidebarProps) {
           style={{ color: 'var(--text)' }}
         >
           <svg width="30" height="30" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22 38 L32 56 L42 38" fill="var(--link)" opacity="0.25"/>
-              <ellipse cx="32" cy="24" rx="10" ry="8" fill="var(--text)"/>
-              <ellipse cx="32" cy="28" rx="20" ry="7" fill="var(--link)"/>
-              <ellipse cx="32" cy="26" rx="18" ry="4" fill="var(--link)" opacity="0.4"/>
-              <ellipse cx="32" cy="32" rx="14" ry="3" fill="var(--link-hover)"/>
-              <circle cx="22" cy="28" r="2" fill="var(--bg)"/>
-              <circle cx="32" cy="28" r="2" fill="var(--bg)"/>
-              <circle cx="42" cy="28" r="2" fill="var(--bg)"/>
+              <path d="M22 38 L32 56 L42 38" fill="#4ade80" opacity="0.25"/>
+              <ellipse cx="32" cy="24" rx="10" ry="8" fill="#166534"/>
+              <ellipse cx="32" cy="28" rx="20" ry="7" fill="#22c55e"/>
+              <ellipse cx="32" cy="26" rx="18" ry="4" fill="#4ade80" opacity="0.4"/>
+              <ellipse cx="32" cy="32" rx="14" ry="3" fill="#15803d"/>
+              <circle cx="22" cy="28" r="2" fill="#f0fdf4"/>
+              <circle cx="32" cy="28" r="2" fill="#f0fdf4"/>
+              <circle cx="42" cy="28" r="2" fill="#f0fdf4"/>
             </svg>
           <span
             className="font-serif font-medium tracking-tight"
@@ -189,14 +189,14 @@ export default function Sidebar({ settings }: SidebarProps) {
           style={{ color: 'var(--text)' }}
         >
           <svg width="26" height="26" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22 38 L32 56 L42 38" fill="var(--link)" opacity="0.25"/>
-              <ellipse cx="32" cy="24" rx="10" ry="8" fill="var(--text)"/>
-              <ellipse cx="32" cy="28" rx="20" ry="7" fill="var(--link)"/>
-              <ellipse cx="32" cy="26" rx="18" ry="4" fill="var(--link)" opacity="0.4"/>
-              <ellipse cx="32" cy="32" rx="14" ry="3" fill="var(--link-hover)"/>
-              <circle cx="22" cy="28" r="2" fill="var(--bg)"/>
-              <circle cx="32" cy="28" r="2" fill="var(--bg)"/>
-              <circle cx="42" cy="28" r="2" fill="var(--bg)"/>
+              <path d="M22 38 L32 56 L42 38" fill="#4ade80" opacity="0.25"/>
+              <ellipse cx="32" cy="24" rx="10" ry="8" fill="#166534"/>
+              <ellipse cx="32" cy="28" rx="20" ry="7" fill="#22c55e"/>
+              <ellipse cx="32" cy="26" rx="18" ry="4" fill="#4ade80" opacity="0.4"/>
+              <ellipse cx="32" cy="32" rx="14" ry="3" fill="#15803d"/>
+              <circle cx="22" cy="28" r="2" fill="#f0fdf4"/>
+              <circle cx="32" cy="28" r="2" fill="#f0fdf4"/>
+              <circle cx="42" cy="28" r="2" fill="#f0fdf4"/>
             </svg>
           <span className="font-serif font-medium" style={{ fontSize: '1.1rem' }}>
             {settings.siteName}
