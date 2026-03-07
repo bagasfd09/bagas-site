@@ -48,10 +48,10 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             # Login to GitHub Container Registry
-            echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ secrets.VPS_USER }} --password-stdin
+            echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u bagasfd09 --password-stdin
 
             # Go to project directory
-            cd ~/bagas-site
+            cd /project/bagas-site
 
             # Pull latest image
             docker compose -f docker-compose.prod.yml pull app

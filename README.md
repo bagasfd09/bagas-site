@@ -23,7 +23,7 @@ A full-stack personal portfolio website built with Next.js 14, TypeScript, Tailw
 - **Markdown**: react-markdown + remark-gfm + rehype-highlight
 - **Containerization**: Docker + Docker Compose
 - **CI/CD**: GitHub Actions → GitHub Container Registry → VPS
-- **Reverse Proxy**: Caddy (automatic HTTPS)
+- **Reverse Proxy**: Nginx (with Certbot for HTTPS)
 
 ## Environment Variables
 
@@ -67,7 +67,7 @@ App runs at http://localhost:3000
 
 ### Option 2: Without Docker
 
-Prerequisites: Node.js 18+, PostgreSQL running locally.
+Prerequisites: Node.js 20+, PostgreSQL running locally.
 
 ```bash
 npm install
@@ -92,17 +92,11 @@ App runs at http://localhost:3000
 If Docker is not installed, run on VPS:
 
 ```bash
-# Install Docker
 curl -fsSL https://get.docker.com | sh
-
-# Enable Docker to start on boot
 sudo systemctl enable docker
-
-# Add your user to docker group (so you can run docker without sudo)
 sudo usermod -aG docker $USER
-
-# Logout and login again for group change to take effect
 exit
+# Login again for group change to take effect
 ```
 
 ### Step 1: Setup GitHub Secrets
@@ -114,7 +108,7 @@ Add these 4 secrets:
 | Secret | How to get it |
 |--------|---------------|
 | `VPS_HOST` | Your VPS IP address (from Hostinger dashboard) |
-| `VPS_USER` | SSH username (e.g. `bagas` or `root`) |
+| `VPS_USER` | SSH username (e.g. `gitaction` or `root`) |
 | `VPS_SSH_KEY` | Run `cat ~/.ssh/id_ed25519` on your local PC, copy entire output including BEGIN/END lines |
 | `GHCR_TOKEN` | GitHub → Settings → Developer settings → Personal access tokens → Generate new token (classic) → check `read:packages` + `write:packages` → Generate → copy token |
 
@@ -134,8 +128,9 @@ SSH into your VPS and run:
 
 ```bash
 # Create project directory
-mkdir -p ~/bagas-site
-cd ~/bagas-site
+sudo mkdir -p /project/bagas-site
+sudo chown $USER:$USER /project/bagas-site
+cd /project/bagas-site
 
 # Download production compose file
 curl -O https://raw.githubusercontent.com/bagasfd09/bagas-site/main/docker-compose.prod.yml
@@ -156,32 +151,50 @@ ENVEOF
 nano .env
 ```
 
-### Step 3: Setup HTTPS with Caddy
-
-Caddy automatically obtains and renews SSL certificates from Let's Encrypt.
+### Step 3: Setup HTTPS with Nginx + Certbot
 
 ```bash
-# Install Caddy
+# Install Nginx
 sudo apt update
-sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
-sudo apt update
-sudo apt install caddy
+sudo apt install -y nginx
 
-# Configure Caddy
-sudo tee /etc/caddy/Caddyfile << 'EOF'
-bagas.dev {
-    reverse_proxy localhost:3000
+# Create Nginx config
+sudo tee /etc/nginx/sites-available/bagas.dev << 'EOF'
+server {
+    listen 80;
+    server_name bagas.dev www.bagas.dev;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
 }
 EOF
 
-# Start Caddy
-sudo systemctl enable caddy
-sudo systemctl restart caddy
+# Enable the site
+sudo ln -sf /etc/nginx/sites-available/bagas.dev /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl restart nginx
+
+# Install Certbot for SSL
+sudo apt install -y certbot python3-certbot-nginx
+
+# Get SSL certificate (make sure DNS A record points to VPS IP first)
+sudo certbot --nginx -d bagas.dev -d www.bagas.dev
+
+# Auto-renewal is enabled by default, verify with:
+sudo certbot renew --dry-run
 ```
 
-Make sure your domain DNS A record points to your VPS IP before running Caddy.
+Make sure your domain DNS A record points to your VPS IP before running Certbot.
 
 ### Step 4: First deploy
 
@@ -196,7 +209,7 @@ This will automatically:
 2. Push image to GitHub Container Registry (ghcr.io)
 3. SSH into your VPS
 4. Pull the latest image
-5. Restart containers with zero downtime
+5. Restart containers
 
 Monitor the deploy at: https://github.com/bagasfd09/bagas-site/actions
 
@@ -205,7 +218,7 @@ Monitor the deploy at: https://github.com/bagasfd09/bagas-site/actions
 After the first successful deploy, SSH into VPS and run:
 
 ```bash
-cd ~/bagas-site
+cd /project/bagas-site
 docker compose -f docker-compose.prod.yml exec app npx prisma db seed
 ```
 
@@ -213,6 +226,7 @@ docker compose -f docker-compose.prod.yml exec app npx prisma db seed
 
 ```bash
 # Check containers are running
+cd /project/bagas-site
 docker compose -f docker-compose.prod.yml ps
 
 # Check app logs
@@ -228,8 +242,9 @@ curl -I https://bagas.dev
 ### Troubleshooting
 
 ```bash
+cd /project/bagas-site
+
 # Restart all containers
-cd ~/bagas-site
 docker compose -f docker-compose.prod.yml restart
 
 # Rebuild and restart
@@ -243,7 +258,7 @@ docker compose -f docker-compose.prod.yml logs -f
 docker compose -f docker-compose.prod.yml exec app sh
 
 # Run database migration manually
-docker compose -f docker-compose.prod.yml exec app npx prisma migrate deploy
+docker compose -f docker-compose.prod.yml exec app ./node_modules/.bin/prisma migrate deploy
 
 # Reset database (WARNING: deletes all data)
 docker compose -f docker-compose.prod.yml down -v
@@ -266,7 +281,7 @@ Push to main → Build Docker image → Push to GHCR → SSH to VPS → Pull & r
 If you need to deploy manually on VPS:
 
 ```bash
-cd ~/bagas-site
+cd /project/bagas-site
 echo YOUR_GHCR_TOKEN | docker login ghcr.io -u bagasfd09 --password-stdin
 docker compose -f docker-compose.prod.yml pull app
 docker compose -f docker-compose.prod.yml up -d
