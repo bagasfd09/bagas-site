@@ -10,48 +10,47 @@ A full-stack personal portfolio website built with Next.js 14, TypeScript, Tailw
 - SEO optimized (sitemap, robots.txt, JSON-LD, OG images)
 - Google Search Console analytics integration
 - GitHub project sync
+- CI/CD auto-deploy via GitHub Actions
 
 ## Tech Stack
 
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **Database**: PostgreSQL
+- **Database**: PostgreSQL 16
 - **ORM**: Prisma
 - **Auth**: JWT + bcrypt (HTTP-only cookies)
 - **Markdown**: react-markdown + remark-gfm + rehype-highlight
+- **Containerization**: Docker + Docker Compose
+- **CI/CD**: GitHub Actions → GitHub Container Registry → VPS
+- **Reverse Proxy**: Caddy (automatic HTTPS)
 
 ## Environment Variables
 
-Copy `.env.example` to `.env.local` and fill in the values:
-
-```bash
-cp .env.example .env.local
-```
+Copy `.env.example` to `.env.local` (local dev) or `.env` (production):
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection URL |
+| `DATABASE_URL` | Yes (local only) | PostgreSQL connection URL |
+| `DB_PASSWORD` | Yes (prod only) | Database password (used in docker-compose.prod.yml) |
 | `ADMIN_PASSWORD` | Yes | Admin login password |
 | `JWT_SECRET` | Yes | JWT signing secret (min 32 chars) |
-| `NEXT_PUBLIC_SITE_URL` | Yes | Your site URL for SEO |
+| `NEXT_PUBLIC_SITE_URL` | Yes | Site URL for SEO (e.g. `https://bagas.dev`) |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | No | Google service account for Search Console |
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | No | Google service account private key |
-| `GOOGLE_SEARCH_CONSOLE_SITE` | No | Search Console property (e.g. `sc-domain:yourdomain.com`) |
+| `GOOGLE_SEARCH_CONSOLE_SITE` | No | Search Console property (`sc-domain:bagas.dev`) |
 | `GOOGLE_SITE_VERIFICATION` | No | Google site verification code |
 | `GITHUB_TOKEN` | No | GitHub token for project sync (5000 req/hr) |
 
-## Getting Started
+## Local Development
 
 ### Option 1: Docker (Recommended)
 
-The easiest way to run everything — app + PostgreSQL in one command.
-
 ```bash
-# Start app and database
+# Start app + PostgreSQL
 docker compose up -d --build
 
-# First time: run database seed
+# First time only: seed database
 docker compose exec app npx prisma db seed
 
 # View logs
@@ -60,143 +59,220 @@ docker compose logs -f app
 # Stop
 docker compose down
 
-# Stop and delete database volume
+# Stop and delete database
 docker compose down -v
 ```
 
 App runs at http://localhost:3000
 
-### Option 2: Local Development
+### Option 2: Without Docker
 
-#### Prerequisites
-
-- Node.js 18+
-- PostgreSQL running locally
-
-#### Setup
+Prerequisites: Node.js 18+, PostgreSQL running locally.
 
 ```bash
-# Install dependencies
 npm install
-
-# Setup environment
-cp .env.example .env.local
-# Edit .env.local with your values
-
-# Run database migrations
+cp .env.example .env.local    # edit with your values
 npx prisma migrate dev
-
-# Seed database
 npx prisma db seed
-
-# Start dev server
 npm run dev
 ```
 
 App runs at http://localhost:3000
 
-## Deploy to Production
+---
 
-### Option A: Docker + VPS (with CI/CD)
+## Production Deployment (VPS + Docker)
 
-Auto-deploy on every push to `main` via GitHub Actions.
+### Prerequisites on VPS
 
-#### 1. Setup GitHub Secrets
+- Ubuntu 22.04+ (or similar Linux)
+- Docker and Docker Compose installed
+- A domain pointing to VPS IP (e.g. `bagas.dev` → your VPS IP)
 
-Go to your repo → Settings → Secrets and variables → Actions, add:
+If Docker is not installed, run on VPS:
 
-| Secret | Description |
-|--------|-------------|
-| `VPS_HOST` | Your server IP (e.g. `123.456.78.90`) |
-| `VPS_USER` | SSH username (e.g. `root`) |
-| `VPS_SSH_KEY` | Your private SSH key (paste full key) |
-| `GHCR_TOKEN` | GitHub Personal Access Token with `read:packages` scope |
+```bash
+# Install Docker
+curl -fsSL https://get.docker.com | sh
 
-#### 2. First-time VPS setup
+# Enable Docker to start on boot
+sudo systemctl enable docker
 
-SSH into your server and run:
+# Add your user to docker group (so you can run docker without sudo)
+sudo usermod -aG docker $USER
+
+# Logout and login again for group change to take effect
+exit
+```
+
+### Step 1: Setup GitHub Secrets
+
+Go to https://github.com/bagasfd09/bagas-site → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+
+Add these 4 secrets:
+
+| Secret | How to get it |
+|--------|---------------|
+| `VPS_HOST` | Your VPS IP address (from Hostinger dashboard) |
+| `VPS_USER` | SSH username (e.g. `bagas` or `root`) |
+| `VPS_SSH_KEY` | Run `cat ~/.ssh/id_ed25519` on your local PC, copy entire output including BEGIN/END lines |
+| `GHCR_TOKEN` | GitHub → Settings → Developer settings → Personal access tokens → Generate new token (classic) → check `read:packages` + `write:packages` → Generate → copy token |
+
+Also make sure the public key (`~/.ssh/id_ed25519.pub` from local PC) is added to VPS:
+
+```bash
+# On VPS, run:
+mkdir -p ~/.ssh
+echo "PASTE_YOUR_PUBLIC_KEY_HERE" >> ~/.ssh/authorized_keys
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
+
+### Step 2: Setup project directory on VPS
+
+SSH into your VPS and run:
 
 ```bash
 # Create project directory
-mkdir -p ~/bagas-site && cd ~/bagas-site
+mkdir -p ~/bagas-site
+cd ~/bagas-site
 
-# Create .env file with production values
-cat > .env << 'EOF'
-DB_PASSWORD=your-strong-db-password
-ADMIN_PASSWORD=your-admin-password
-JWT_SECRET=your-jwt-secret-at-least-32-chars
+# Download production compose file
+curl -O https://raw.githubusercontent.com/bagasfd09/bagas-site/main/docker-compose.prod.yml
+
+# Create production environment file
+cat > .env << 'ENVEOF'
+DB_PASSWORD=CHANGE_ME_TO_STRONG_PASSWORD
+ADMIN_PASSWORD=CHANGE_ME
+JWT_SECRET=CHANGE_ME_MIN_32_CHARS_RANDOM_STRING
 NEXT_PUBLIC_SITE_URL=https://bagas.dev
 GOOGLE_SERVICE_ACCOUNT_EMAIL=
 GOOGLE_SERVICE_ACCOUNT_KEY=
 GOOGLE_SEARCH_CONSOLE_SITE=sc-domain:bagas.dev
 GOOGLE_SITE_VERIFICATION=
-EOF
+ENVEOF
 
-# Copy the production compose file
-# (or scp from local: scp docker-compose.prod.yml user@server:~/bagas-site/docker-compose.prod.yml)
+# IMPORTANT: Edit .env and replace all CHANGE_ME values
+nano .env
 ```
 
-#### 3. Push to deploy
+### Step 3: Setup HTTPS with Caddy
 
-Every push to `main` will automatically:
-1. Build Docker image → push to GitHub Container Registry
-2. SSH into VPS → pull new image → restart containers
-
-```bash
-git push origin main  # triggers auto-deploy
-```
-
-#### 4. First deploy: seed database
-
-```bash
-ssh user@your-server
-cd ~/bagas-site
-docker compose -f docker-compose.prod.yml exec app npx prisma db seed
-```
-
-#### 5. HTTPS with Caddy (recommended)
-
-Install Caddy on your VPS for automatic HTTPS:
+Caddy automatically obtains and renews SSL certificates from Let's Encrypt.
 
 ```bash
 # Install Caddy
-sudo apt install -y caddy
+sudo apt update
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install caddy
 
-# Edit Caddyfile
+# Configure Caddy
 sudo tee /etc/caddy/Caddyfile << 'EOF'
 bagas.dev {
     reverse_proxy localhost:3000
 }
 EOF
 
-# Restart Caddy
+# Start Caddy
+sudo systemctl enable caddy
 sudo systemctl restart caddy
 ```
 
-### Option B: Vercel
+Make sure your domain DNS A record points to your VPS IP before running Caddy.
 
-1. Go to https://vercel.com and sign in with GitHub
-2. Click **"Add New Project"** and import `bagas-site`
-3. Add environment variables (see table above)
-4. Click **Deploy**
-5. After deploy, run migrations on your hosted DB:
+### Step 4: First deploy
+
+Push any change to `main` branch to trigger the CI/CD pipeline:
 
 ```bash
-DATABASE_URL="your-hosted-db-url" npx prisma migrate deploy
-DATABASE_URL="your-hosted-db-url" npx prisma db seed
+git push origin main
 ```
 
-#### Connect custom domain
+This will automatically:
+1. Build Docker image on GitHub Actions
+2. Push image to GitHub Container Registry (ghcr.io)
+3. SSH into your VPS
+4. Pull the latest image
+5. Restart containers with zero downtime
 
-1. In Vercel project settings → **Domains** → add `bagas.dev`
-2. Update DNS records as shown by Vercel
-3. SSL is automatic
+Monitor the deploy at: https://github.com/bagasfd09/bagas-site/actions
 
-#### Submit sitemap
+### Step 5: Seed the database (first time only)
 
-1. Go to [Google Search Console](https://search.google.com/search-console)
-2. Click **Sitemaps** in the sidebar
-3. Submit: `https://bagas.dev/sitemap.xml`
+After the first successful deploy, SSH into VPS and run:
+
+```bash
+cd ~/bagas-site
+docker compose -f docker-compose.prod.yml exec app npx prisma db seed
+```
+
+### Step 6: Verify everything works
+
+```bash
+# Check containers are running
+docker compose -f docker-compose.prod.yml ps
+
+# Check app logs
+docker compose -f docker-compose.prod.yml logs -f app
+
+# Check database logs
+docker compose -f docker-compose.prod.yml logs -f db
+
+# Test the site
+curl -I https://bagas.dev
+```
+
+### Troubleshooting
+
+```bash
+# Restart all containers
+cd ~/bagas-site
+docker compose -f docker-compose.prod.yml restart
+
+# Rebuild and restart
+docker compose -f docker-compose.prod.yml pull app
+docker compose -f docker-compose.prod.yml up -d
+
+# View real-time logs
+docker compose -f docker-compose.prod.yml logs -f
+
+# Enter app container shell
+docker compose -f docker-compose.prod.yml exec app sh
+
+# Run database migration manually
+docker compose -f docker-compose.prod.yml exec app npx prisma migrate deploy
+
+# Reset database (WARNING: deletes all data)
+docker compose -f docker-compose.prod.yml down -v
+docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml exec app npx prisma db seed
+```
+
+---
+
+## CI/CD Pipeline
+
+The GitHub Actions workflow (`.github/workflows/deploy.yml`) runs on every push to `main`:
+
+```
+Push to main → Build Docker image → Push to GHCR → SSH to VPS → Pull & restart
+```
+
+### Manual deploy (without CI/CD)
+
+If you need to deploy manually on VPS:
+
+```bash
+cd ~/bagas-site
+echo YOUR_GHCR_TOKEN | docker login ghcr.io -u bagasfd09 --password-stdin
+docker compose -f docker-compose.prod.yml pull app
+docker compose -f docker-compose.prod.yml up -d
+```
+
+---
 
 ## Scripts
 
@@ -212,6 +288,14 @@ npm run db:studio    # Open Prisma Studio
 
 ## Admin Panel
 
-Login at `/admin` with username `admin` and the password you set in `ADMIN_PASSWORD`.
+Login at `/admin` with username `admin` and the password from `ADMIN_PASSWORD`.
 
 Features: Dashboard, Posts, Notes, Projects, Skills, About Me editor, Site Settings, Analytics.
+
+## Post-deploy: Submit sitemap to Google
+
+After your site is live:
+
+1. Go to [Google Search Console](https://search.google.com/search-console)
+2. Click **Sitemaps** in the sidebar
+3. Submit: `https://bagas.dev/sitemap.xml`
