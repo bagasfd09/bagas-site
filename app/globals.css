@@ -1509,8 +1509,15 @@ a.skill-card:hover {
   --admin-surface-active: #eeeeee;
   --admin-border:         #e0e0e0;
   --admin-text-primary:   #1a1a1a;
-  --admin-text-secondary: #666666;
-  --admin-text-muted:     #aaaaaa;
+  --admin-text-secondary: #555555;
+  --admin-text-muted:     #999999;
+  --admin-accent:         #9a6324;
+  --admin-accent-hover:   #7d4f19;
+  --admin-accent-soft:    rgba(154, 99, 36, 0.1);
+  --admin-success:        #1a7f37;
+  --admin-warning:        #9a6700;
+  --admin-danger:         #cf222e;
+  --admin-info:           #0969da;
 }
 
 .admin-layout * { box-sizing: border-box; }
@@ -2318,7 +2325,7 @@ a.skill-card:hover {
   border: 1px solid var(--admin-border);
   border-radius: 7px;
   padding: 6px 10px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
   z-index: 10;
   white-space: nowrap;
 }
