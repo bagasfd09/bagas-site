@@ -98,7 +98,16 @@ export default function Sidebar({ settings }: SidebarProps) {
           className="flex items-center gap-2 hover:no-underline"
           style={{ color: 'var(--text)' }}
         >
-          <span className="text-xl">💾</span>
+          <svg width="22" height="22" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22 38 L32 56 L42 38" fill="var(--link)" opacity="0.25"/>
+              <ellipse cx="32" cy="24" rx="10" ry="8" fill="var(--text)"/>
+              <ellipse cx="32" cy="28" rx="20" ry="7" fill="var(--link)"/>
+              <ellipse cx="32" cy="26" rx="18" ry="4" fill="var(--link)" opacity="0.4"/>
+              <ellipse cx="32" cy="32" rx="14" ry="3" fill="var(--link-hover)"/>
+              <circle cx="22" cy="28" r="2" fill="var(--bg)"/>
+              <circle cx="32" cy="28" r="2" fill="var(--bg)"/>
+              <circle cx="42" cy="28" r="2" fill="var(--bg)"/>
+            </svg>
           <span
             className="font-serif font-medium tracking-tight"
             style={{ fontSize: '1.2rem' }}
@@ -179,7 +188,16 @@ export default function Sidebar({ settings }: SidebarProps) {
           className="flex items-center gap-2 hover:no-underline"
           style={{ color: 'var(--text)' }}
         >
-          <span>💾</span>
+          <svg width="20" height="20" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22 38 L32 56 L42 38" fill="var(--link)" opacity="0.25"/>
+              <ellipse cx="32" cy="24" rx="10" ry="8" fill="var(--text)"/>
+              <ellipse cx="32" cy="28" rx="20" ry="7" fill="var(--link)"/>
+              <ellipse cx="32" cy="26" rx="18" ry="4" fill="var(--link)" opacity="0.4"/>
+              <ellipse cx="32" cy="32" rx="14" ry="3" fill="var(--link-hover)"/>
+              <circle cx="22" cy="28" r="2" fill="var(--bg)"/>
+              <circle cx="32" cy="28" r="2" fill="var(--bg)"/>
+              <circle cx="42" cy="28" r="2" fill="var(--bg)"/>
+            </svg>
           <span className="font-serif font-medium" style={{ fontSize: '1.1rem' }}>
             {settings.siteName}
           </span>
