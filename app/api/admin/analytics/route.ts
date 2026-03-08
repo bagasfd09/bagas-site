@@ -16,9 +16,12 @@ export async function GET(request: NextRequest) {
     const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
     startDate.setHours(0, 0, 0, 0)
 
-    // Get all page views in range
+    // Get all page views in range (exclude CTA tracking paths)
     const views = await prisma.pageView.findMany({
-      where: { createdAt: { gte: startDate } },
+      where: {
+        createdAt: { gte: startDate },
+        NOT: { path: { startsWith: '__cta/' } },
+      },
       select: {
         createdAt: true,
         country: true,
@@ -86,6 +89,31 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.views - a.views)
       .slice(0, 10)
 
+    // === CTA clicks ===
+    const ctaClicks = await prisma.pageView.findMany({
+      where: {
+        path: { startsWith: '__cta/' },
+        createdAt: { gte: startDate },
+      },
+      select: { path: true, createdAt: true },
+    })
+
+    const todayStr = now.toISOString().slice(0, 10)
+    const ctaStats = {
+      cvDownloads: { total: 0, today: 0 },
+      linkedinClicks: { total: 0, today: 0 },
+    }
+    for (const c of ctaClicks) {
+      const isToday = c.createdAt.toISOString().slice(0, 10) === todayStr
+      if (c.path === '__cta/cv-download') {
+        ctaStats.cvDownloads.total++
+        if (isToday) ctaStats.cvDownloads.today++
+      } else if (c.path === '__cta/linkedin') {
+        ctaStats.linkedinClicks.total++
+        if (isToday) ctaStats.linkedinClicks.today++
+      }
+    }
+
     // === Summary ===
     const allVisitors = new Set(views.map((v: { ipHash: string }) => v.ipHash))
     const todayKey = now.toISOString().slice(0, 10)
@@ -104,6 +132,7 @@ export async function GET(request: NextRequest) {
       daily,
       countries,
       topPages,
+      ctaStats,
     })
   } catch (err) {
     console.error('Analytics error:', err)

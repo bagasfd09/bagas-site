@@ -8,6 +8,8 @@ interface DailyData { date: string; views: number; visitors: number }
 interface CountryData { country: string; code: string; views: number; visitors: number }
 interface PageData { path: string; views: number }
 
+interface CtaStat { total: number; today: number }
+
 interface AnalyticsData {
   summary: {
     totalViews: number
@@ -19,6 +21,10 @@ interface AnalyticsData {
   daily: DailyData[]
   countries: CountryData[]
   topPages: PageData[]
+  ctaStats?: {
+    cvDownloads: CtaStat
+    linkedinClicks: CtaStat
+  }
 }
 
 interface SeoQuery { query: string; clicks: number; impressions: number; ctr: number; position: number }
@@ -234,7 +240,7 @@ export default function AnalyticsCharts() {
     )
   }
 
-  const { summary, daily, countries, topPages } = data
+  const { summary, daily, countries, topPages, ctaStats } = data
   const trend = pct(summary.todayViews, summary.yesterdayViews)
   const avgViews = daily.length > 0 ? Math.round(daily.reduce((s, d) => s + d.views, 0) / daily.length) : 0
   const topCountryViews = countries.length > 0 ? countries[0].views : 1
@@ -333,6 +339,42 @@ export default function AnalyticsCharts() {
               </div>
             </div>
           </div>
+
+          {/* CTA Clicks */}
+          {ctaStats && (
+            <div className="ana-card">
+              <div className="ana-card-head">
+                <span className="ana-card-title">CTA Clicks</span>
+              </div>
+              <div style={{ padding: '12px 14px', display: 'flex', gap: 12 }}>
+                <div className="ana-cta-stat">
+                  <div className="ana-cta-icon" style={{ background: 'color-mix(in srgb, var(--admin-accent) 12%, transparent)' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--admin-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                  </div>
+                  <div className="ana-cta-info">
+                    <span className="ana-cta-label">Resume Downloads</span>
+                    <span className="ana-cta-val">{fmt(ctaStats.cvDownloads.total)}</span>
+                    <span className="ana-cta-today">{ctaStats.cvDownloads.today} today</span>
+                  </div>
+                </div>
+                <div className="ana-cta-stat">
+                  <div className="ana-cta-icon" style={{ background: 'color-mix(in srgb, var(--admin-info) 12%, transparent)' }}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--admin-info)">
+                      <path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016l.016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z"/>
+                    </svg>
+                  </div>
+                  <div className="ana-cta-info">
+                    <span className="ana-cta-label">LinkedIn Clicks</span>
+                    <span className="ana-cta-val">{fmt(ctaStats.linkedinClicks.total)}</span>
+                    <span className="ana-cta-today">{ctaStats.linkedinClicks.today} today</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* RIGHT: Search / SEO */}
