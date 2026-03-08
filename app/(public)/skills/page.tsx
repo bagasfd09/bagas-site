@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import SkillsGrid from '@/components/public/SkillsGrid'
+import SkillsFilterGrid from '@/components/public/SkillsFilterGrid'
 import AnimateIn from '@/components/public/AnimateIn'
 import type { Metadata } from 'next'
 
@@ -11,25 +11,11 @@ export const metadata: Metadata = {
   alternates: { canonical: '/skills' },
 }
 
-const CATEGORIES = [
-  { key: 'language', label: 'Languages' },
-  { key: 'framework', label: 'Frameworks' },
-  { key: 'database', label: 'Databases' },
-  { key: 'tool', label: 'Tools' },
-  { key: 'cloud', label: 'Cloud' },
-  { key: 'other', label: 'Other' },
-]
-
 export default async function SkillsPage() {
   const skills = await prisma.skill.findMany({
     orderBy: { sortOrder: 'asc' },
     select: { id: true, name: true, slug: true, icon: true, url: true, category: true, level: true, yearsOfExp: true },
   })
-
-  const grouped = CATEGORIES.map((cat) => ({
-    ...cat,
-    items: skills.filter((s) => s.category === cat.key),
-  })).filter((g) => g.items.length > 0)
 
   return (
     <div>
@@ -53,17 +39,9 @@ export default async function SkillsPage() {
         </div>
       </AnimateIn>
 
-      {grouped.map((group, i) => (
-        <AnimateIn key={group.key} as="section" className="mb-10" animation="fade-up" delay={i * 100}>
-          <h2
-            className="text-sm font-mono font-medium mb-4 pb-2"
-            style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}
-          >
-            {group.label}
-          </h2>
-          <SkillsGrid skills={group.items} />
-        </AnimateIn>
-      ))}
+      <AnimateIn animation="fade-up" delay={80}>
+        <SkillsFilterGrid skills={skills} />
+      </AnimateIn>
     </div>
   )
 }
