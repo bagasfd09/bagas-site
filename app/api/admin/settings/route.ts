@@ -23,7 +23,7 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const data = await request.json()
-    const { name, siteName, tagline, heroIntro, heroImage, bio, sidebarBio, github, linkedin, twitter, email, bluesky, rssEnabled } = data
+    const { name, siteName, tagline, heroIntro, heroImage, cvUrl, bio, sidebarBio, github, linkedin, twitter, email, bluesky, rssEnabled } = data
 
     const settings = await prisma.siteSettings.upsert({
       where: { id: 'main' },
@@ -33,6 +33,7 @@ export async function PUT(request: NextRequest) {
         tagline,
         heroIntro: heroIntro || '',
         heroImage: heroImage || null,
+        cvUrl: cvUrl || '',
         bio,
         sidebarBio,
         github: github || '',
@@ -49,6 +50,7 @@ export async function PUT(request: NextRequest) {
         tagline: tagline || '',
         heroIntro: heroIntro || '',
         heroImage: heroImage || null,
+        cvUrl: cvUrl || '',
         bio: bio || '',
         sidebarBio: sidebarBio || '',
         github: github || '',

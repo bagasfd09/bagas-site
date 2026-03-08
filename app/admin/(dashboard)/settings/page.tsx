@@ -9,6 +9,7 @@ interface Settings {
   tagline: string
   heroIntro: string
   heroImage: string
+  cvUrl: string
   sidebarBio: string
   github: string
   linkedin: string
@@ -25,6 +26,7 @@ const defaultSettings: Settings = {
   tagline: '',
   heroIntro: '',
   heroImage: '',
+  cvUrl: '',
   sidebarBio: '',
   github: '',
   linkedin: '',
@@ -79,6 +81,7 @@ export default function SettingsPage() {
           tagline: data.tagline || '',
           heroIntro: data.heroIntro || '',
           heroImage: data.heroImage || '',
+          cvUrl: data.cvUrl || '',
           sidebarBio: data.sidebarBio || '',
           github: data.github || '',
           linkedin: data.linkedin || '',
@@ -200,6 +203,60 @@ export default function SettingsPage() {
               className="admin-input"
               placeholder="https://example.com/mascot.png"
             />
+          </Field>
+          <Field label="CV / Resume (PDF)" hint="Upload your CV to enable the Download CV button on homepage">
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                type="text"
+                value={form.cvUrl}
+                onChange={(e) => setForm((f) => ({ ...f, cvUrl: e.target.value }))}
+                className="admin-input"
+                placeholder="/uploads/profile/cv.pdf"
+                readOnly
+                style={{ flex: 1 }}
+              />
+              <label
+                className="admin-btn admin-btn-secondary"
+                style={{ padding: '8px 16px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                Upload PDF
+                <input
+                  type="file"
+                  accept=".pdf"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    fd.append('folder', 'profile')
+                    try {
+                      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+                      const data = await res.json()
+                      if (data.path) {
+                        setForm((f) => ({ ...f, cvUrl: data.path }))
+                        setToast({ message: 'CV uploaded successfully', type: 'success' })
+                      } else {
+                        setToast({ message: data.error || 'Upload failed', type: 'error' })
+                      }
+                    } catch {
+                      setToast({ message: 'Upload failed', type: 'error' })
+                    }
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+              {form.cvUrl && (
+                <button
+                  type="button"
+                  className="admin-btn admin-btn-danger"
+                  style={{ padding: '8px 12px' }}
+                  onClick={() => setForm((f) => ({ ...f, cvUrl: '' }))}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
           </Field>
           <Field label="Sidebar Bio">
             <textarea
