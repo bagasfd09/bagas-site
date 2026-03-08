@@ -5,6 +5,7 @@ import PostRowList from '@/components/public/PostRowList'
 import SkillsGrid from '@/components/public/SkillsGrid'
 import AnimateIn from '@/components/public/AnimateIn'
 import AlienEyes from '@/components/public/AlienEyes'
+import HeroCTAButtons from '@/components/public/HeroCTAButtons'
 import { PersonJsonLd, WebsiteJsonLd } from '@/components/public/JsonLd'
 import type { Metadata } from 'next'
 
@@ -68,7 +69,8 @@ export default async function HomePage() {
   const heroIntro =
     settings?.heroIntro ||
     "I'm a software developer and open-source enthusiast from Indonesia. I build modern web apps and write about development on this blog."
-  const email = settings?.email || ''
+  const linkedin = settings?.linkedin || ''
+  const cvUrl = settings?.cvUrl || ''
   const heroImage = settings?.heroImage || ''
 
   return (
@@ -96,16 +98,7 @@ export default async function HomePage() {
                 <path d="M7.063 11.462a.737.737 0 0 0-1.39-.007l-.88 2.48a.367.367 0 0 1-.163.194l-2.42 1.42a.737.737 0 0 0 .006 1.275l2.39 1.363a.367.367 0 0 1 .163.191l.916 2.507a.737.737 0 0 0 1.39.006l.855-2.507a.367.367 0 0 1 .16-.196l2.42-1.42a.737.737 0 0 0-.007-1.274l-2.389-1.363a.367.367 0 0 1-.164-.191L7.063 11.462z" fill="#D97706"/>
               </svg>
             </p>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/me" className="hero-btn">
-                <span>💾</span> About Me
-              </Link>
-              {email && (
-                <a href={`mailto:${email}`} className="hero-btn">
-                  <span>✉️</span> Email Newsletter
-                </a>
-              )}
-            </div>
+            <HeroCTAButtons cvUrl={cvUrl} linkedin={linkedin} />
           </div>
 
           {/* Mascot side */}

@@ -2484,6 +2484,50 @@ a.skill-card:hover {
   flex-shrink: 0;
 }
 
+/* ── CTA Clicks ──────────────────────────────────────────── */
+.ana-cta-stat {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+}
+.ana-cta-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ana-cta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.ana-cta-label {
+  font-size: 0.6875rem;
+  color: var(--admin-text-muted);
+  white-space: nowrap;
+}
+.ana-cta-val {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--admin-text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.ana-cta-today {
+  font-size: 0.625rem;
+  color: var(--admin-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── SEO Table ────────────────────────────────────────────── */
 .ana-seo-table {
   display: flex;

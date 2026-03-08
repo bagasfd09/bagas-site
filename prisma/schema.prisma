@@ -106,6 +106,7 @@ model SiteSettings {
   tagline    String   @default("Software developer and open-source enthusiast")
   heroIntro  String   @db.Text @default("I'm a software developer and open-source enthusiast from Indonesia. I build modern web apps and write about development on this blog.")
   heroImage  String?
+  cvUrl      String   @default("")
   bio        String   @db.Text
   sidebarBio String   @default("I'm Bagas, software developer and open-source enthusiast from Indonesia. This is my corner of the universe. 🚀")
   github     String   @default("")
