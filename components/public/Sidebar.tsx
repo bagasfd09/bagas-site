@@ -89,61 +89,63 @@ export default function Sidebar({ settings }: SidebarProps) {
     settings.rssEnabled && { href: '/rss.xml', label: 'RSS feed' },
   ].filter(Boolean) as { href: string; label: string }[]
 
-  const SidebarContent = () => (
+  const SidebarContent = ({ showHeader = true }: { showHeader?: boolean }) => (
     <>
-      {/* Header: Logo + Theme Toggle */}
-      <div className="flex items-center justify-between mb-5">
-        <Link
-          href="/"
-          className="flex items-center gap-2 hover:no-underline"
-          style={{ color: 'var(--text)' }}
-        >
-          <span className="ufo-scene">
-            <svg width="45" height="45" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Beam */}
-              <path d="M22 38 L32 72 L42 38" fill="#4ade80" opacity="0.15"/>
-
-              {/* UFO */}
-              <g className="ufo-hover">
-                <ellipse cx="32" cy="24" rx="10" ry="8" fill="#166534"/>
-                <ellipse cx="32" cy="28" rx="20" ry="7" fill="#22c55e"/>
-                <ellipse cx="32" cy="26" rx="18" ry="4" fill="#4ade80" opacity="0.4"/>
-                <ellipse cx="32" cy="32" rx="14" ry="3" fill="#15803d"/>
-                <circle cx="22" cy="28" r="2" fill="#f0fdf4"/>
-                <circle cx="32" cy="28" r="2" fill="#f0fdf4"/>
-                <circle cx="42" cy="28" r="2" fill="#f0fdf4"/>
-              </g>
-
-              {/* Person being abducted */}
-              <g className="ufo-person">
-                <circle cx="28" cy="58" r="2" fill="var(--muted)"/>
-                <line x1="28" y1="60" x2="28" y2="67" stroke="var(--muted)" strokeWidth="1.2" strokeLinecap="round"/>
-                <line x1="28" y1="62" x2="25" y2="65" stroke="var(--muted)" strokeWidth="1.2" strokeLinecap="round"/>
-                <line x1="28" y1="62" x2="31" y2="65" stroke="var(--muted)" strokeWidth="1.2" strokeLinecap="round"/>
-                <line x1="28" y1="67" x2="26" y2="72" stroke="var(--muted)" strokeWidth="1.2" strokeLinecap="round"/>
-                <line x1="28" y1="67" x2="30" y2="72" stroke="var(--muted)" strokeWidth="1.2" strokeLinecap="round"/>
-              </g>
-
-              {/* Cow being abducted */}
-              <g className="ufo-cow">
-                <ellipse cx="38" cy="63" rx="4" ry="2.5" fill="var(--muted)"/>
-                <circle cx="35" cy="61" r="1.8" fill="var(--muted)"/>
-                <line x1="35" y1="65.5" x2="35" y2="69" stroke="var(--muted)" strokeWidth="1" strokeLinecap="round"/>
-                <line x1="37" y1="65.5" x2="37" y2="69" stroke="var(--muted)" strokeWidth="1" strokeLinecap="round"/>
-                <line x1="39" y1="65.5" x2="39" y2="69" stroke="var(--muted)" strokeWidth="1" strokeLinecap="round"/>
-                <line x1="41" y1="65.5" x2="41" y2="69" stroke="var(--muted)" strokeWidth="1" strokeLinecap="round"/>
-              </g>
-            </svg>
-          </span>
-          <span
-            className="font-serif font-medium tracking-tight"
-            style={{ fontSize: '1.2rem' }}
+      {/* Header: Logo + Theme Toggle (desktop only) */}
+      {showHeader && (
+        <div className="flex items-center justify-between mb-5">
+          <Link
+            href="/"
+            className="flex items-center gap-2 hover:no-underline"
+            style={{ color: 'var(--text)' }}
           >
-            {settings.siteName}
-          </span>
-        </Link>
-        <ThemeToggle />
-      </div>
+            <span className="ufo-scene">
+              <svg width="45" height="45" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Beam */}
+                <path d="M22 38 L32 72 L42 38" fill="#4ade80" opacity="0.15"/>
+
+                {/* UFO */}
+                <g className="ufo-hover">
+                  <ellipse cx="32" cy="24" rx="10" ry="8" fill="#166534"/>
+                  <ellipse cx="32" cy="28" rx="20" ry="7" fill="#22c55e"/>
+                  <ellipse cx="32" cy="26" rx="18" ry="4" fill="#4ade80" opacity="0.4"/>
+                  <ellipse cx="32" cy="32" rx="14" ry="3" fill="#15803d"/>
+                  <circle cx="22" cy="28" r="2" fill="#f0fdf4"/>
+                  <circle cx="32" cy="28" r="2" fill="#f0fdf4"/>
+                  <circle cx="42" cy="28" r="2" fill="#f0fdf4"/>
+                </g>
+
+                {/* Person being abducted */}
+                <g className="ufo-person">
+                  <circle cx="28" cy="58" r="2" fill="var(--muted)"/>
+                  <line x1="28" y1="60" x2="28" y2="67" stroke="var(--muted)" strokeWidth="1.2" strokeLinecap="round"/>
+                  <line x1="28" y1="62" x2="25" y2="65" stroke="var(--muted)" strokeWidth="1.2" strokeLinecap="round"/>
+                  <line x1="28" y1="62" x2="31" y2="65" stroke="var(--muted)" strokeWidth="1.2" strokeLinecap="round"/>
+                  <line x1="28" y1="67" x2="26" y2="72" stroke="var(--muted)" strokeWidth="1.2" strokeLinecap="round"/>
+                  <line x1="28" y1="67" x2="30" y2="72" stroke="var(--muted)" strokeWidth="1.2" strokeLinecap="round"/>
+                </g>
+
+                {/* Cow being abducted */}
+                <g className="ufo-cow">
+                  <ellipse cx="38" cy="63" rx="4" ry="2.5" fill="var(--muted)"/>
+                  <circle cx="35" cy="61" r="1.8" fill="var(--muted)"/>
+                  <line x1="35" y1="65.5" x2="35" y2="69" stroke="var(--muted)" strokeWidth="1" strokeLinecap="round"/>
+                  <line x1="37" y1="65.5" x2="37" y2="69" stroke="var(--muted)" strokeWidth="1" strokeLinecap="round"/>
+                  <line x1="39" y1="65.5" x2="39" y2="69" stroke="var(--muted)" strokeWidth="1" strokeLinecap="round"/>
+                  <line x1="41" y1="65.5" x2="41" y2="69" stroke="var(--muted)" strokeWidth="1" strokeLinecap="round"/>
+                </g>
+              </svg>
+            </span>
+            <span
+              className="font-serif font-medium tracking-tight"
+              style={{ fontSize: '1.2rem' }}
+            >
+              {settings.siteName}
+            </span>
+          </Link>
+          <ThemeToggle />
+        </div>
+      )}
 
       {/* About Me Section */}
       <div className="sb-bio-section">
@@ -278,7 +280,7 @@ export default function Sidebar({ settings }: SidebarProps) {
           className="md:hidden fixed top-12 left-0 right-0 z-30 p-6 sidebar border-b shadow-lg"
           style={{ borderColor: 'var(--sidebar-border)' }}
         >
-          <SidebarContent />
+          <SidebarContent showHeader={false} />
         </div>
       )}
 
