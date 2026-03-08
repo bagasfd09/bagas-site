@@ -81,11 +81,11 @@ export default function Sidebar({ settings }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const socialLinks = [
-    settings.github && { href: settings.github, label: 'GitHub' },
-    settings.linkedin && { href: settings.linkedin, label: 'LinkedIn' },
-    settings.twitter && { href: settings.twitter, label: 'Twitter' },
-    settings.bluesky && { href: settings.bluesky, label: 'Bluesky' },
-    settings.email && { href: `mailto:${settings.email}`, label: 'Email' },
+    settings.github?.trim() && { href: settings.github, label: 'GitHub' },
+    settings.linkedin?.trim() && { href: settings.linkedin, label: 'LinkedIn' },
+    settings.twitter?.trim() && { href: settings.twitter, label: 'Twitter' },
+    settings.bluesky?.trim() && { href: settings.bluesky, label: 'Bluesky' },
+    settings.email?.trim() && { href: `mailto:${settings.email}`, label: 'Email' },
     settings.rssEnabled && { href: '/rss.xml', label: 'RSS feed' },
   ].filter(Boolean) as { href: string; label: string }[]
 
