@@ -888,6 +888,86 @@ a.skill-card--confident:hover {
   background: var(--border);
 }
 
+/* Skill filter bar */
+.skill-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 1.75rem;
+}
+
+.skill-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.4;
+}
+
+.skill-filter-pill:hover {
+  border-color: var(--link);
+  color: var(--link);
+}
+
+.skill-filter-pill--active {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+.skill-filter-pill--active:hover {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+.skill-filter-count {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.skill-filter-pill--active .skill-filter-count {
+  opacity: 0.7;
+}
+
+/* Skill filter sections */
+.skill-filter-grid {
+  animation: skillFilterIn 0.3s ease;
+}
+
+.skill-filter-section {
+  margin-bottom: 2rem;
+}
+
+.skill-filter-section:last-child {
+  margin-bottom: 0;
+}
+
+.skill-filter-heading {
+  font-size: 0.8125rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-weight: 500;
+  color: var(--muted);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+@keyframes skillFilterIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ─── SECTION GRID ──────────────────────────────────────────── */
 .three-col-grid {
   display: grid;

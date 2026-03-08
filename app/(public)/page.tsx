@@ -201,7 +201,25 @@ export default async function HomePage() {
               Learning / Familiar
             </span>
           </div>
-          <SkillsGrid skills={skills} />
+          {(() => {
+            const CATS = [
+              { key: 'language', label: 'Languages' },
+              { key: 'framework', label: 'Frameworks' },
+              { key: 'database', label: 'Databases' },
+              { key: 'tool', label: 'Tools' },
+              { key: 'cloud', label: 'Cloud' },
+              { key: 'other', label: 'Other' },
+            ]
+            const grouped = CATS
+              .map((c) => ({ ...c, items: skills.filter((s) => s.category === c.key) }))
+              .filter((g) => g.items.length > 0)
+            return grouped.map((group) => (
+              <section key={group.key} className="skill-filter-section">
+                <h3 className="skill-filter-heading">{group.label}</h3>
+                <SkillsGrid skills={group.items} />
+              </section>
+            ))
+          })()}
           <div className="mt-4">
             <Link href="/skills" className="view-all-link">
               All skills <span className="view-all-arrow">&rarr;</span>
