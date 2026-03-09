@@ -32,9 +32,20 @@ export async function POST(request: NextRequest) {
     const { name, icon, url, category, sortOrder, featured } = data
 
     const slug = data.slug || slugify(name)
+    const effectiveCategory = category || 'language'
 
     const existing = await prisma.skill.findUnique({ where: { slug } })
     const finalSlug = existing ? `${slug}-${Date.now()}` : slug
+
+    // Auto-increment sortOrder if not provided
+    let finalSortOrder = sortOrder
+    if (finalSortOrder == null || finalSortOrder === '') {
+      const maxSort = await prisma.skill.aggregate({
+        where: { category: effectiveCategory },
+        _max: { sortOrder: true },
+      })
+      finalSortOrder = (maxSort._max.sortOrder ?? -1) + 1
+    }
 
     const skill = await prisma.skill.create({
       data: {
@@ -42,10 +53,10 @@ export async function POST(request: NextRequest) {
         slug: finalSlug,
         icon: icon || null,
         url: url || null,
-        category: category || 'language',
+        category: effectiveCategory,
         level: data.level || 'intermediate',
         yearsOfExp: data.yearsOfExp != null ? parseFloat(data.yearsOfExp) : null,
-        sortOrder: sortOrder || 0,
+        sortOrder: finalSortOrder,
         featured: featured || false,
       },
     })

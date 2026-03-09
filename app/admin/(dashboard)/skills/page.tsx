@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState, useCallback } from 'react'
 import ConfirmModal from '@/components/admin/ConfirmModal'
 import Toast from '@/components/admin/Toast'
+import BatchSkillAdd from '@/components/admin/BatchSkillAdd'
 
 interface Skill {
   id: string
@@ -33,6 +34,7 @@ export default function SkillsAdminPage() {
   const [deleteName, setDeleteName] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [batchMode, setBatchMode] = useState(false)
 
   const fetchSkills = useCallback(async () => {
     setLoading(true)
@@ -88,6 +90,12 @@ export default function SkillsAdminPage() {
           <p>{skills.length} total &middot; technologies you work with</p>
         </div>
         <div className="adm-list-header-actions">
+          <button onClick={() => setBatchMode(true)} className="admin-btn admin-btn-secondary" disabled={batchMode}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M2 4h12M2 8h12M2 12h12" />
+            </svg>
+            Batch Add
+          </button>
           <Link href="/admin/skills/new" className="admin-btn admin-btn-primary">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 2v12M2 8h12" strokeLinecap="round" /></svg>
             Add Skill
@@ -104,6 +112,17 @@ export default function SkillsAdminPage() {
           ))}
         </select>
       </div>
+
+      {batchMode && (
+        <BatchSkillAdd
+          existingNames={skills.map((s) => s.name)}
+          onSaved={() => {
+            setToast({ message: 'Skills added successfully', type: 'success' })
+            fetchSkills()
+          }}
+          onClose={() => setBatchMode(false)}
+        />
+      )}
 
       <div className="adm-list-table">
         {loading ? (
