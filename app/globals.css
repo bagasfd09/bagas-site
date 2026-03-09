@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400&display=swap');
-
 /* ─── COLOR TOKENS ─────────────────────────────────────────── */
 :root {
   --bg:             #fdf6e3;
@@ -51,7 +49,7 @@ body {
 
 /* ─── TYPOGRAPHY ────────────────────────────────────────────── */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Newsreader', Georgia, 'Times New Roman', serif;
+  font-family: var(--font-serif, 'Newsreader'), Georgia, 'Times New Roman', serif;
   letter-spacing: -0.02em;
   line-height: 1.3;
   color: var(--heading);
@@ -985,7 +983,7 @@ a.skill-card--confident:hover {
 
 /* ─── HOMEPAGE SECTION ──────────────────────────────────────── */
 .section-heading {
-  font-family: 'Newsreader', Georgia, serif;
+  font-family: var(--font-serif, 'Newsreader'), Georgia, serif;
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--heading);
@@ -1426,7 +1424,7 @@ a.skill-card:hover {
 }
 
 .login-title {
-  font-family: 'Newsreader', Georgia, serif;
+  font-family: var(--font-serif, 'Newsreader'), Georgia, serif;
   font-size: 1.35rem;
   font-weight: 600;
   letter-spacing: -0.02em;

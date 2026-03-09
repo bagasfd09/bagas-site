@@ -10,7 +10,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['Georgia', 'Newsreader', 'Times New Roman', 'serif'],
+        serif: ['var(--font-serif)', 'Georgia', 'Times New Roman', 'serif'],
         sans: [
           '-apple-system',
           'BlinkMacSystemFont',
