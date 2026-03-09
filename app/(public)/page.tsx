@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import ProjectCard from '@/components/public/ProjectCard'
@@ -148,10 +149,13 @@ export default async function HomePage() {
               <span className="hero-deco hero-alien" aria-hidden="true">
                 <AlienEyes />
               </span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={heroImage || '/images/bg-pic.png'}
                 alt={`${name} mascot`}
+                width={360}
+                height={360}
+                priority
+                quality={80}
               />
             </div>
           </div>
