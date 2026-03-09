@@ -31,7 +31,7 @@ interface Skill {
   category: string
   level: string
   yearsOfExp: number | ''
-  sortOrder: number
+  sortOrder: number | ''
   featured: boolean
 }
 
@@ -52,7 +52,7 @@ export default function SkillForm({ skill }: SkillFormProps) {
     category: skill?.category || 'language',
     level: skill?.level || 'intermediate',
     yearsOfExp: skill?.yearsOfExp ?? '',
-    sortOrder: skill?.sortOrder ?? 0,
+    sortOrder: skill?.sortOrder ?? '',
     featured: skill?.featured ?? false,
   })
 
@@ -76,6 +76,7 @@ export default function SkillForm({ skill }: SkillFormProps) {
         icon: form.icon || null,
         url: form.url || null,
         yearsOfExp: form.yearsOfExp === '' ? null : parseFloat(String(form.yearsOfExp)),
+        sortOrder: form.sortOrder === '' ? null : form.sortOrder,
       }
 
       const res = await fetch(url, {
@@ -262,9 +263,10 @@ export default function SkillForm({ skill }: SkillFormProps) {
                     type="number"
                     value={form.sortOrder}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))
+                      setForm((f) => ({ ...f, sortOrder: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }))
                     }
                     className="admin-input"
+                    placeholder="Auto"
                     min={0}
                   />
                 </div>
