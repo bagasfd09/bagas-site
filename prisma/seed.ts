@@ -921,6 +921,79 @@ services:
   }
   console.log('✅ Projects created')
 
+  // Experiences (sorted by sortOrder — same company roles are consecutive for grouping)
+  const experiences = [
+    {
+      title: 'Backend Developer',
+      company: 'PT Solusi Digital Nusantara',
+      companyLogo: null,
+      location: 'Jakarta, Indonesia',
+      startDate: new Date('2024-03-01'),
+      endDate: null,
+      current: true,
+      description:
+        'Led monolith-to-microservices migration, improving response times by 40%. Designed role-based access control system and real-time WebSocket notifications.',
+      tech: ['Node.js', 'Fastify', 'PostgreSQL', 'Redis', 'Docker'],
+      projects: [{ name: 'SGK Performance Hub', logo: '', url: '' }],
+      sortOrder: 0,
+    },
+    {
+      title: 'Junior Backend Developer',
+      company: 'PT Solusi Digital Nusantara',
+      companyLogo: null,
+      location: 'Jakarta, Indonesia',
+      startDate: new Date('2023-03-01'),
+      endDate: new Date('2024-02-28'),
+      current: false,
+      description:
+        'Built REST APIs and WebSocket services for banking platform. Implemented automated testing pipeline with 85% code coverage.',
+      tech: ['Node.js', 'Express', 'PostgreSQL'],
+      projects: [{ name: 'Internal Tools Dashboard', logo: '', url: '' }],
+      sortOrder: 1,
+    },
+    {
+      title: 'Full-Stack Developer',
+      company: 'Kreasi Teknologi Indonesia',
+      companyLogo: null,
+      location: 'Bandung, Indonesia',
+      startDate: new Date('2022-07-01'),
+      endDate: new Date('2023-02-28'),
+      current: false,
+      description:
+        'Developed client-facing web apps and internal tools for e-commerce clients. Built a headless CMS with Next.js and improved page load by 60%.',
+      tech: ['Next.js', 'React', 'TypeScript', 'Prisma'],
+      projects: [
+        { name: 'E-Commerce Platform', logo: '', url: '' },
+        { name: 'Headless CMS', logo: '', url: '' },
+      ],
+      sortOrder: 2,
+    },
+    {
+      title: 'Junior Web Developer',
+      company: 'Startup Lokal',
+      companyLogo: null,
+      location: 'Remote',
+      startDate: new Date('2021-01-01'),
+      endDate: new Date('2022-06-30'),
+      current: false,
+      description:
+        'First engineering hire. Built landing page, admin dashboard, and customer portal from scratch. Rapid prototyping under tight deadlines.',
+      tech: ['React', 'Node.js', 'MongoDB', 'Express'],
+      projects: [{ name: 'Customer Portal', logo: '', url: '' }],
+      sortOrder: 3,
+    },
+  ]
+
+  for (const exp of experiences) {
+    const existing = await prisma.experience.findFirst({
+      where: { title: exp.title, company: exp.company },
+    })
+    if (!existing) {
+      await prisma.experience.create({ data: exp })
+    }
+  }
+  console.log('✅ Experiences created')
+
   console.log('\n🎉 Database seeded successfully!')
 }
 

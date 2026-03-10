@@ -28,7 +28,8 @@
     "react-dom": "^18.3.0",
     "react-markdown": "^9.0.1",
     "rehype-highlight": "^7.0.0",
-    "remark-gfm": "^4.0.0"
+    "remark-gfm": "^4.0.0",
+    "sharp": "^0.34.5"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"

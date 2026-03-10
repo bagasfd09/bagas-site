@@ -7,6 +7,7 @@ import SkillsGrid from '@/components/public/SkillsGrid'
 import AnimateIn from '@/components/public/AnimateIn'
 import AlienEyes from '@/components/public/AlienEyes'
 import HeroCTAButtons from '@/components/public/HeroCTAButtons'
+import ExperienceTimeline from '@/components/public/ExperienceTimeline'
 import { PersonJsonLd, WebsiteJsonLd } from '@/components/public/JsonLd'
 import type { Metadata } from 'next'
 
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
 }
 
 async function getData() {
-  const [settings, blogPosts, notes, skills, projects] = await Promise.all([
+  const [settings, blogPosts, notes, skills, projects, experiences] = await Promise.all([
     prisma.siteSettings.findUnique({ where: { id: 'main' } }),
     prisma.post.findMany({
       where: { type: 'post', published: true },
@@ -58,13 +59,29 @@ async function getData() {
         githubLanguage: true,
       },
     }),
+    prisma.experience.findMany({
+      orderBy: { sortOrder: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        company: true,
+        companyLogo: true,
+        location: true,
+        startDate: true,
+        endDate: true,
+        current: true,
+        description: true,
+        tech: true,
+        projects: true,
+      },
+    }),
   ])
 
-  return { settings, blogPosts, notes, skills, projects }
+  return { settings, blogPosts, notes, skills, projects, experiences }
 }
 
 export default async function HomePage() {
-  const { settings, blogPosts, notes, skills, projects } = await getData()
+  const { settings, blogPosts, notes, skills, projects, experiences } = await getData()
 
   const name = settings?.name || 'Bagas'
   const heroIntro =
@@ -73,6 +90,113 @@ export default async function HomePage() {
   const linkedin = settings?.linkedin || ''
   const cvUrl = settings?.cvUrl || ''
   const heroImage = settings?.heroImage || ''
+
+  // Section visibility & ordering
+  const sectionConfig = [
+    { key: 'experience', show: settings?.showExperience ?? true, order: settings?.orderExperience ?? 0 },
+    { key: 'blog', show: settings?.showBlog ?? true, order: settings?.orderBlog ?? 1 },
+    { key: 'notes', show: settings?.showNotes ?? true, order: settings?.orderNotes ?? 2 },
+    { key: 'skills', show: settings?.showSkills ?? true, order: settings?.orderSkills ?? 3 },
+    { key: 'projects', show: settings?.showProjects ?? true, order: settings?.orderProjects ?? 4 },
+  ].sort((a, b) => a.order - b.order)
+
+  // Section renderers
+  const sectionRenderers: Record<string, () => React.ReactNode> = {
+    experience: () =>
+      experiences.length > 0 ? (
+        <AnimateIn as="section" className="mb-14" animation="fade-up" key="experience">
+          <h2 className="section-heading">Experience</h2>
+          <p className="section-subtitle">Where I&apos;ve worked and what I&apos;ve built.</p>
+          <ExperienceTimeline experiences={experiences} />
+        </AnimateIn>
+      ) : null,
+    blog: () =>
+      blogPosts.length > 0 ? (
+        <AnimateIn as="section" className="mb-14" animation="fade-up" key="blog">
+          <h2 className="section-heading">Blog</h2>
+          <p className="section-subtitle">Personal essays and technical thoughts.</p>
+          <PostRowList posts={blogPosts} />
+          <div className="mt-4">
+            <Link href="/blog" className="view-all-link">
+              All posts <span className="view-all-arrow">&rarr;</span>
+            </Link>
+          </div>
+        </AnimateIn>
+      ) : null,
+    notes: () =>
+      notes.length > 0 ? (
+        <AnimateIn as="section" className="mb-14" animation="fade-up" delay={80} key="notes">
+          <h2 className="section-heading">Notes</h2>
+          <p className="section-subtitle">Guides, references, and tutorials.</p>
+          <PostRowList posts={notes} />
+          <div className="mt-4">
+            <Link href="/notes" className="view-all-link">
+              All notes <span className="view-all-arrow">&rarr;</span>
+            </Link>
+          </div>
+        </AnimateIn>
+      ) : null,
+    skills: () =>
+      skills.length > 0 ? (
+        <AnimateIn as="section" className="mb-14" animation="fade-up" key="skills">
+          <h2 className="section-heading">Skills</h2>
+          <p className="section-subtitle">Technologies and tools I work with.</p>
+          <div className="skill-legend" style={{ marginBottom: '1rem' }}>
+            <span className="skill-legend-item">
+              <span className="skill-legend-dot skill-legend-dot--confident" />
+              Confident
+            </span>
+            <span className="skill-legend-item">
+              <span className="skill-legend-dot skill-legend-dot--learning" />
+              Learning / Familiar
+            </span>
+          </div>
+          {(() => {
+            const CATS = [
+              { key: 'language', label: 'Languages' },
+              { key: 'framework', label: 'Frameworks' },
+              { key: 'database', label: 'Databases' },
+              { key: 'tool', label: 'Tools' },
+              { key: 'cloud', label: 'Cloud' },
+              { key: 'other', label: 'Other' },
+            ]
+            const grouped = CATS
+              .map((c) => ({ ...c, items: skills.filter((s) => s.category === c.key) }))
+              .filter((g) => g.items.length > 0)
+            return grouped.map((group) => (
+              <section key={group.key} className="skill-filter-section">
+                <h3 className="skill-filter-heading">{group.label}</h3>
+                <SkillsGrid skills={group.items} />
+              </section>
+            ))
+          })()}
+          <div className="mt-4">
+            <Link href="/skills" className="view-all-link">
+              All skills <span className="view-all-arrow">&rarr;</span>
+            </Link>
+          </div>
+        </AnimateIn>
+      ) : null,
+    projects: () =>
+      projects.length > 0 ? (
+        <AnimateIn as="section" className="mb-14" animation="fade-up" key="projects">
+          <h2 className="section-heading">Projects</h2>
+          <p className="section-subtitle">Open-source projects I&apos;ve worked on over the years.</p>
+          <div className="three-col-grid">
+            {projects.map((project, i) => (
+              <AnimateIn key={project.id} animation="fade-up" delay={i * 80} duration={450}>
+                <ProjectCard project={project} />
+              </AnimateIn>
+            ))}
+          </div>
+          <div className="mt-4">
+            <Link href="/projects" className="view-all-link">
+              All projects <span className="view-all-arrow">&rarr;</span>
+            </Link>
+          </div>
+        </AnimateIn>
+      ) : null,
+  }
 
   return (
     <div>
@@ -162,95 +286,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Blog ─────────────────────────────────────────────── */}
-      {blogPosts.length > 0 && (
-        <AnimateIn as="section" className="mb-14" animation="fade-up">
-          <h2 className="section-heading">Blog</h2>
-          <p className="section-subtitle">Personal essays and technical thoughts.</p>
-          <PostRowList posts={blogPosts} />
-          <div className="mt-4">
-            <Link href="/blog" className="view-all-link">
-              All posts <span className="view-all-arrow">&rarr;</span>
-            </Link>
-          </div>
-        </AnimateIn>
-      )}
-
-      {/* ── Notes ────────────────────────────────────────────── */}
-      {notes.length > 0 && (
-        <AnimateIn as="section" className="mb-14" animation="fade-up" delay={80}>
-          <h2 className="section-heading">Notes</h2>
-          <p className="section-subtitle">Guides, references, and tutorials.</p>
-          <PostRowList posts={notes} />
-          <div className="mt-4">
-            <Link href="/notes" className="view-all-link">
-              All notes <span className="view-all-arrow">&rarr;</span>
-            </Link>
-          </div>
-        </AnimateIn>
-      )}
-
-      {/* ── Skills ───────────────────────────────────────────── */}
-      {skills.length > 0 && (
-        <AnimateIn as="section" className="mb-14" animation="fade-up">
-          <h2 className="section-heading">Skills</h2>
-          <p className="section-subtitle">Technologies and tools I work with.</p>
-          <div className="skill-legend" style={{ marginBottom: '1rem' }}>
-            <span className="skill-legend-item">
-              <span className="skill-legend-dot skill-legend-dot--confident" />
-              Confident
-            </span>
-            <span className="skill-legend-item">
-              <span className="skill-legend-dot skill-legend-dot--learning" />
-              Learning / Familiar
-            </span>
-          </div>
-          {(() => {
-            const CATS = [
-              { key: 'language', label: 'Languages' },
-              { key: 'framework', label: 'Frameworks' },
-              { key: 'database', label: 'Databases' },
-              { key: 'tool', label: 'Tools' },
-              { key: 'cloud', label: 'Cloud' },
-              { key: 'other', label: 'Other' },
-            ]
-            const grouped = CATS
-              .map((c) => ({ ...c, items: skills.filter((s) => s.category === c.key) }))
-              .filter((g) => g.items.length > 0)
-            return grouped.map((group) => (
-              <section key={group.key} className="skill-filter-section">
-                <h3 className="skill-filter-heading">{group.label}</h3>
-                <SkillsGrid skills={group.items} />
-              </section>
-            ))
-          })()}
-          <div className="mt-4">
-            <Link href="/skills" className="view-all-link">
-              All skills <span className="view-all-arrow">&rarr;</span>
-            </Link>
-          </div>
-        </AnimateIn>
-      )}
-
-      {/* ── Projects ─────────────────────────────────────────── */}
-      {projects.length > 0 && (
-        <AnimateIn as="section" className="mb-14" animation="fade-up">
-          <h2 className="section-heading">Projects</h2>
-          <p className="section-subtitle">Open-source projects I&apos;ve worked on over the years.</p>
-          <div className="three-col-grid">
-            {projects.map((project, i) => (
-              <AnimateIn key={project.id} animation="fade-up" delay={i * 80} duration={450}>
-                <ProjectCard project={project} />
-              </AnimateIn>
-            ))}
-          </div>
-          <div className="mt-4">
-            <Link href="/projects" className="view-all-link">
-              All projects <span className="view-all-arrow">&rarr;</span>
-            </Link>
-          </div>
-        </AnimateIn>
-      )}
+      {/* ── Dynamic Sections (ordered by settings) ─────────── */}
+      {sectionConfig
+        .filter((s) => s.show)
+        .map((s) => sectionRenderers[s.key]?.())}
     </div>
   )
 }

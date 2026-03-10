@@ -23,7 +23,12 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const data = await request.json()
-    const { name, siteName, tagline, heroIntro, heroImage, cvUrl, bio, sidebarBio, github, linkedin, twitter, email, bluesky, rssEnabled } = data
+    const {
+      name, siteName, tagline, heroIntro, heroImage, cvUrl, bio, sidebarBio,
+      github, linkedin, twitter, email, bluesky, rssEnabled,
+      showExperience, showBlog, showNotes, showSkills, showProjects,
+      orderExperience, orderBlog, orderNotes, orderSkills, orderProjects,
+    } = data
 
     const settings = await prisma.siteSettings.upsert({
       where: { id: 'main' },
@@ -42,6 +47,16 @@ export async function PUT(request: NextRequest) {
         email: email || '',
         bluesky: bluesky || '',
         rssEnabled: rssEnabled ?? true,
+        showExperience: showExperience ?? true,
+        showBlog: showBlog ?? true,
+        showNotes: showNotes ?? true,
+        showSkills: showSkills ?? true,
+        showProjects: showProjects ?? true,
+        orderExperience: orderExperience ?? 0,
+        orderBlog: orderBlog ?? 1,
+        orderNotes: orderNotes ?? 2,
+        orderSkills: orderSkills ?? 3,
+        orderProjects: orderProjects ?? 4,
       },
       create: {
         id: 'main',
@@ -59,6 +74,16 @@ export async function PUT(request: NextRequest) {
         email: email || '',
         bluesky: bluesky || '',
         rssEnabled: rssEnabled ?? true,
+        showExperience: showExperience ?? true,
+        showBlog: showBlog ?? true,
+        showNotes: showNotes ?? true,
+        showSkills: showSkills ?? true,
+        showProjects: showProjects ?? true,
+        orderExperience: orderExperience ?? 0,
+        orderBlog: orderBlog ?? 1,
+        orderNotes: orderNotes ?? 2,
+        orderSkills: orderSkills ?? 3,
+        orderProjects: orderProjects ?? 4,
       },
     })
 

@@ -8,6 +8,7 @@ interface ImageUploadProps {
   folder?: string
   accept?: string // e.g. "image/svg+xml" or "image/*"
   acceptHint?: string // display text for allowed types
+  compress?: 'logo' | 'thumb' // auto-compress: logo=128px, thumb=256px
 }
 
 function formatBytes(bytes: number): string {
@@ -22,6 +23,7 @@ export default function ImageUpload({
   folder = 'projects',
   accept = 'image/*',
   acceptHint = 'PNG, JPG, WebP up to 5MB',
+  compress,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -37,6 +39,7 @@ export default function ImageUpload({
         const fd = new FormData()
         fd.append('file', file)
         fd.append('folder', folder)
+        if (compress) fd.append('compress', compress)
 
         const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
         const data = await res.json()
@@ -54,7 +57,7 @@ export default function ImageUpload({
         setUploading(false)
       }
     },
-    [folder, onChange]
+    [folder, compress, onChange]
   )
 
   function handleFile(file: File) {
@@ -66,8 +69,9 @@ export default function ImageUpload({
       setError(accept === 'image/svg+xml' ? 'Only SVG files are allowed' : 'Invalid file type. Allowed: JPG, PNG, WebP, GIF, SVG')
       return
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError('File too large. Maximum 5MB')
+    const maxSize = compress ? 2 * 1024 * 1024 : 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      setError(`File too large. Maximum ${compress ? '2MB' : '5MB'}`)
       return
     }
     upload(file)

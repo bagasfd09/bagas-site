@@ -15,19 +15,25 @@ interface SiteSettings {
   email: string
   bluesky: string
   rssEnabled: boolean
+  showBlog?: boolean
+  showNotes?: boolean
+  showSkills?: boolean
+  showProjects?: boolean
 }
 
 interface SidebarProps {
   settings: SiteSettings
 }
 
-const navLinks = [
-  { href: '/blog', label: 'Blog' },
-  { href: '/notes', label: 'Notes' },
-  { href: '/skills', label: 'Skills' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/me', label: 'About Me' },
-]
+function getNavLinks(settings: SiteSettings) {
+  const links: { href: string; label: string }[] = []
+  if (settings.showBlog !== false) links.push({ href: '/blog', label: 'Blog' })
+  if (settings.showNotes !== false) links.push({ href: '/notes', label: 'Notes' })
+  if (settings.showSkills !== false) links.push({ href: '/skills', label: 'Skills' })
+  if (settings.showProjects !== false) links.push({ href: '/projects', label: 'Projects' })
+  links.push({ href: '/me', label: 'About Me' })
+  return links
+}
 
 function SocialIcon({ type }: { type: string }) {
   const props = { width: 16, height: 16, fill: 'currentColor', viewBox: '0 0 16 16' }
@@ -79,6 +85,8 @@ function SocialIcon({ type }: { type: string }) {
 export default function Sidebar({ settings }: SidebarProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const navLinks = getNavLinks(settings)
 
   const socialLinks = [
     settings.github?.trim() && { href: settings.github, label: 'GitHub' },

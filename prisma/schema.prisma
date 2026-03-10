@@ -83,6 +83,26 @@ model Skill {
   @@index([featured])
 }
 
+model Experience {
+  id          String   @id @default(cuid())
+  title       String
+  company     String
+  companyLogo String?
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  current     Boolean  @default(false)
+  description String?  @db.Text
+  tech        String[]
+  projects    Json[]
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sortOrder])
+  @@index([current])
+}
+
 model PageView {
   id          String   @id @default(cuid())
   path        String
@@ -115,5 +135,16 @@ model SiteSettings {
   email      String   @default("")
   bluesky    String   @default("")
   rssEnabled Boolean  @default(true)
+  // Section visibility & ordering
+  showExperience  Boolean @default(true)
+  showBlog        Boolean @default(true)
+  showNotes       Boolean @default(true)
+  showSkills      Boolean @default(true)
+  showProjects    Boolean @default(true)
+  orderExperience Int     @default(0)
+  orderBlog       Int     @default(1)
+  orderNotes      Int     @default(2)
+  orderSkills     Int     @default(3)
+  orderProjects   Int     @default(4)
   updatedAt  DateTime @updatedAt
 }
