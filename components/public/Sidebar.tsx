@@ -15,6 +15,7 @@ interface SiteSettings {
   email: string
   bluesky: string
   rssEnabled: boolean
+  showExperience?: boolean
   showBlog?: boolean
   showNotes?: boolean
   showSkills?: boolean
