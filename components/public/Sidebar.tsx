@@ -27,6 +27,7 @@ interface SidebarProps {
 
 function getNavLinks(settings: SiteSettings) {
   const links: { href: string; label: string }[] = []
+  if (settings.showExperience !== false) links.push({ href: '/experience', label: 'Experience' })
   if (settings.showBlog !== false) links.push({ href: '/blog', label: 'Blog' })
   if (settings.showNotes !== false) links.push({ href: '/notes', label: 'Notes' })
   if (settings.showSkills !== false) links.push({ href: '/skills', label: 'Skills' })
