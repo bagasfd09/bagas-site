@@ -295,8 +295,8 @@ export default function ExperienceForm({ experience }: ExperienceFormProps) {
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               className="admin-textarea"
-              rows={3}
-              placeholder="What did you work on?"
+              rows={6}
+              placeholder="What did you work on? Use new lines for bullet points."
             />
           </div>
 
