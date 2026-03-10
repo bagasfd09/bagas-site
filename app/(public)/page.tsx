@@ -61,6 +61,7 @@ async function getData() {
     }),
     prisma.experience.findMany({
       orderBy: { startDate: 'desc' },
+      take: 3,
       select: {
         id: true,
         title: true,
@@ -108,6 +109,11 @@ export default async function HomePage() {
           <h2 className="section-heading">Experience</h2>
           <p className="section-subtitle">Where I&apos;ve worked and what I&apos;ve built.</p>
           <ExperienceTimeline experiences={experiences} />
+          <div className="mt-4">
+            <Link href="/experience" className="view-all-link">
+              View full resume <span className="view-all-arrow">&rarr;</span>
+            </Link>
+          </div>
         </AnimateIn>
       ) : null,
     blog: () =>
