@@ -10,7 +10,7 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: 'dark',
+  theme: 'light',
   toggleTheme: () => {},
 })
 
@@ -19,7 +19,7 @@ export function useAdminTheme() {
 }
 
 export default function AdminThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark')
+  const [theme, setTheme] = useState<Theme>('light')
 
   useEffect(() => {
     const saved = localStorage.getItem('adminTheme') as Theme | null
@@ -34,7 +34,7 @@ export default function AdminThemeProvider({ children }: { children: ReactNode }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <div className="admin-layout" data-theme={theme === 'light' ? 'light' : undefined}>
+      <div className="admin-layout" data-theme={theme === 'dark' ? 'dark' : undefined}>
         {children}
       </div>
     </ThemeContext.Provider>

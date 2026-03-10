@@ -18,10 +18,10 @@ export default async function AdminDashboardLayout({
     <AdminThemeProvider>
       <AdminSidebar username={session.username} />
       <main
-        className="md:ml-[240px] pt-[52px] md:pt-0 min-h-screen"
+        className="md:ml-[230px] pt-[52px] md:pt-0 min-h-screen"
         style={{ background: 'var(--admin-bg)' }}
       >
-        <div style={{ padding: '28px 32px' }}>{children}</div>
+        <div style={{ padding: '36px' }}>{children}</div>
       </main>
     </AdminThemeProvider>
   )

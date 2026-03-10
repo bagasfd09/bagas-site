@@ -60,8 +60,6 @@ export default function AdminSidebar({ username }: AdminSidebarProps) {
     return pathname === href || pathname.startsWith(href + '/')
   }
 
-  const avatarLetter = username ? username.charAt(0).toUpperCase() : 'A'
-
   function NavLink({
     href,
     label,
@@ -89,17 +87,17 @@ export default function AdminSidebar({ username }: AdminSidebarProps) {
   function SidebarInner() {
     return (
       <div className="adm-sidebar">
-        {/* Accent gradient line at top */}
-        <div className="adm-sidebar-accent" />
-
-        {/* Identity */}
+        {/* Logo + site identity */}
         <div className="adm-sidebar-identity">
-          <div className="adm-sidebar-avatar">{avatarLetter}</div>
+          <div className="adm-sidebar-avatar">B</div>
           <div className="adm-sidebar-identity-text">
             <div className="adm-sidebar-sitename">bagas.dev</div>
-            <div className="adm-sidebar-username">{username}</div>
+            <div className="adm-sidebar-username">admin</div>
           </div>
         </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: 'var(--admin-border)', margin: '0 16px' }} />
 
         {/* Main nav */}
         <div className="adm-nav-label">Main</div>
@@ -143,7 +141,7 @@ export default function AdminSidebar({ username }: AdminSidebarProps) {
     <>
       {/* Desktop sidebar */}
       <aside
-        style={{ width: '240px' }}
+        style={{ width: '230px' }}
         className="hidden md:flex flex-col fixed left-0 top-0 bottom-0 z-30"
       >
         <SidebarInner />
@@ -160,7 +158,7 @@ export default function AdminSidebar({ username }: AdminSidebarProps) {
       >
         <div className="flex items-center gap-2">
           <div className="adm-sidebar-avatar" style={{ width: '28px', height: '28px', fontSize: '0.7rem' }}>
-            {avatarLetter}
+            B
           </div>
           <span style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--admin-text-primary)' }}>
             bagas.dev
@@ -191,7 +189,7 @@ export default function AdminSidebar({ username }: AdminSidebarProps) {
           />
           <div
             className="md:hidden fixed top-0 left-0 bottom-0 z-40 flex flex-col"
-            style={{ width: '240px' }}
+            style={{ width: '230px' }}
           >
             <SidebarInner />
           </div>
