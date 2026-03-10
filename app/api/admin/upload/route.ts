@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { existsSync } from 'fs'
+import sharp from 'sharp'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
     const formData = await request.formData()
     const file = formData.get('file') as File
     const folder = (formData.get('folder') as string) || 'general'
+    const compress = formData.get('compress') as string // "logo" | "thumb" | falsy
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
@@ -30,10 +32,10 @@ export async function POST(request: Request) {
       )
     }
 
-    const maxSize = 10 * 1024 * 1024
+    const maxSize = compress ? 2 * 1024 * 1024 : 10 * 1024 * 1024
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 5MB' },
+        { error: `File too large. Maximum size is ${compress ? '2MB' : '10MB'}` },
         { status: 400 }
       )
     }
@@ -49,24 +51,57 @@ export async function POST(request: Request) {
       .replace(ext, '')
       .replace(/[^a-zA-Z0-9-_]/g, '-')
       .toLowerCase()
-    const filename = `${timestamp}-${safeName}${ext}`
-    const filepath = path.join(uploadDir, filename)
 
     const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
 
+    // SVG: sanitize and save as-is (no compression needed)
     if (file.type === 'image/svg+xml') {
-      const svgText = Buffer.from(bytes).toString('utf-8')
+      const filename = `${timestamp}-${safeName}${ext}`
+      const filepath = path.join(uploadDir, filename)
+      const svgText = buffer.toString('utf-8')
       const sanitized = sanitizeSvg(svgText)
       await writeFile(filepath, sanitized, 'utf-8')
-    } else {
-      await writeFile(filepath, Buffer.from(bytes))
+
+      return NextResponse.json({
+        success: true,
+        path: `/uploads/${folder}/${filename}`,
+        filename,
+        size: file.size,
+      })
     }
 
-    const publicPath = `/uploads/${folder}/${filename}`
+    // Raster images: optionally compress with sharp
+    if (compress && file.type !== 'application/pdf') {
+      const size = compress === 'logo' ? 128 : 256
+      const filename = `${timestamp}-${safeName}.webp`
+      const filepath = path.join(uploadDir, filename)
+
+      const compressed = await sharp(buffer)
+        .resize(size, size, { fit: 'cover', withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer()
+
+      await writeFile(filepath, compressed)
+
+      return NextResponse.json({
+        success: true,
+        path: `/uploads/${folder}/${filename}`,
+        filename,
+        size: compressed.length,
+        originalSize: file.size,
+        compressed: true,
+      })
+    }
+
+    // Default: save as-is
+    const filename = `${timestamp}-${safeName}${ext}`
+    const filepath = path.join(uploadDir, filename)
+    await writeFile(filepath, buffer)
 
     return NextResponse.json({
       success: true,
-      path: publicPath,
+      path: `/uploads/${folder}/${filename}`,
       filename,
       size: file.size,
     })

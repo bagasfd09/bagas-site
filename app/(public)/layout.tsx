@@ -7,20 +7,24 @@ async function getSettings() {
     const settings = await prisma.siteSettings.findUnique({
       where: { id: 'main' },
     })
-    return (
-      settings || {
-        name: 'Bagas',
-        siteName: 'bagas.dev',
-        sidebarBio:
-          "I'm Bagas, software developer and open-source enthusiast from Indonesia. This is my corner of the universe. 🚀",
-        github: 'https://github.com/bagas',
-        linkedin: 'https://linkedin.com/in/bagas',
-        twitter: 'https://twitter.com/bagas',
-        email: 'bagas@example.com',
-        bluesky: '',
-        rssEnabled: true,
-      }
-    )
+    const defaults = {
+      name: 'Bagas',
+      siteName: 'bagas.dev',
+      sidebarBio:
+        "I'm Bagas, software developer and open-source enthusiast from Indonesia. This is my corner of the universe. 🚀",
+      github: 'https://github.com/bagas',
+      linkedin: 'https://linkedin.com/in/bagas',
+      twitter: 'https://twitter.com/bagas',
+      email: 'bagas@example.com',
+      bluesky: '',
+      rssEnabled: true,
+      showExperience: true,
+      showBlog: true,
+      showNotes: true,
+      showSkills: true,
+      showProjects: true,
+    }
+    return settings || defaults
   } catch {
     return {
       name: 'Bagas',
@@ -33,6 +37,11 @@ async function getSettings() {
       email: 'bagas@example.com',
       bluesky: '',
       rssEnabled: true,
+      showExperience: true,
+      showBlog: true,
+      showNotes: true,
+      showSkills: true,
+      showProjects: true,
     }
   }
 }

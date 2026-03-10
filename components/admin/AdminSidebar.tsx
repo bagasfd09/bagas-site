@@ -8,6 +8,7 @@ import {
   FileText,
   StickyNote,
   Cpu,
+  Briefcase,
   FolderKanban,
   Settings,
   User,
@@ -25,6 +26,7 @@ const mainNav = [
   { href: '/admin/posts', label: 'Posts', icon: FileText },
   { href: '/admin/notes', label: 'Notes', icon: StickyNote },
   { href: '/admin/skills', label: 'Skills', icon: Cpu },
+  { href: '/admin/experiences', label: 'Experiences', icon: Briefcase },
   { href: '/admin/projects', label: 'Projects', icon: FolderKanban },
 ]
 
