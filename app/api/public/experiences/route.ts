@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const experiences = await prisma.experience.findMany({
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { startDate: 'desc' },
       select: {
         id: true,
         title: true,

@@ -60,7 +60,7 @@ async function getData() {
       },
     }),
     prisma.experience.findMany({
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { startDate: 'desc' },
       select: {
         id: true,
         title: true,

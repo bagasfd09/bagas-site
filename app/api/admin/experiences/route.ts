@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     const experiences = await prisma.experience.findMany({
       where,
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { startDate: 'desc' },
     })
 
     return NextResponse.json({ experiences })
