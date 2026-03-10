@@ -1179,6 +1179,7 @@ a.skill-card--confident:hover {
   line-height: 1.6;
   margin-bottom: 10px;
   margin-top: 4px;
+  white-space: pre-line;
 }
 
 .exp-tech {
