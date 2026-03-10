@@ -1240,7 +1240,8 @@ a.skill-card--confident:hover {
   width: 20px;
   height: 20px;
   border-radius: 5px;
-  object-fit: cover;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .exp-project-pill span {
   line-height: 1;
