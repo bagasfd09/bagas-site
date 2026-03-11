@@ -683,8 +683,8 @@ export default function DashboardMascot() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])
 
-  // Send message handler (UI only — API integration later)
-  const handleSend = useCallback(() => {
+  // Send message to OpenClaw API with SSE streaming
+  const handleSend = useCallback(async () => {
     const text = chatInput.trim()
     if (!text) return
     const userMsg: ChatMessage = { id: msgIdRef.current++, role: 'user', text }
@@ -692,25 +692,74 @@ export default function DashboardMascot() {
     setChatInput('')
     setIsTyping(true)
 
-    // Placeholder reply — will be replaced with OpenRouter API
-    setTimeout(() => {
-      const replies = [
-        "Snip snip! I'm just a pixel crab for now 🦀",
-        "That's interesting! (API coming soon...)",
-        "🥋 *does a karate chop* — I can't really chat yet!",
-        "Beep boop... my brain isn't connected yet!",
-        "*clicks claws excitedly* Soon I'll be smarter!",
-        "I'm all shell, no brain... for now 😄",
-      ]
-      const reply: ChatMessage = {
-        id: msgIdRef.current++,
-        role: 'clawd',
-        text: replies[Math.floor(Math.random() * replies.length)],
+    // Build message history for API (exclude the initial greeting)
+    const apiMessages = [...messages.filter(m => m.role === 'user' || m.role === 'clawd').map(m => ({
+      role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+      content: m.text,
+    })), { role: 'user' as const, content: text }]
+
+    try {
+      const res = await fetch('/api/admin/mascot/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: apiMessages }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Connection failed' }))
+        setMessages((prev) => [...prev, {
+          id: msgIdRef.current++, role: 'clawd',
+          text: `⚠️ ${err.error || 'Failed to connect to OpenClaw'}`,
+        }])
+        setIsTyping(false)
+        return
       }
-      setMessages((prev) => [...prev, reply])
+
+      // Parse SSE stream
+      const reader = res.body?.getReader()
+      if (!reader) throw new Error('No response body')
+
+      const replyId = msgIdRef.current++
+      setMessages((prev) => [...prev, { id: replyId, role: 'clawd', text: '' }])
       setIsTyping(false)
-    }, 800 + Math.random() * 1200)
-  }, [chatInput])
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6).trim()
+          if (data === '[DONE]') break
+
+          try {
+            const parsed = JSON.parse(data)
+            const delta = parsed.choices?.[0]?.delta?.content
+            if (delta) {
+              setMessages((prev) => prev.map(m =>
+                m.id === replyId ? { ...m, text: m.text + delta } : m
+              ))
+            }
+          } catch {
+            // skip malformed chunks
+          }
+        }
+      }
+    } catch {
+      setMessages((prev) => [...prev, {
+        id: msgIdRef.current++, role: 'clawd',
+        text: '⚠️ Failed to connect to OpenClaw gateway',
+      }])
+      setIsTyping(false)
+    }
+  }, [chatInput, messages])
 
   // Animation frame ticker
   useEffect(() => {
