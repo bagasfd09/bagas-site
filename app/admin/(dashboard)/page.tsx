@@ -1,6 +1,9 @@
 import Link from 'next/link'
+import { Suspense, lazy } from 'react'
 import { prisma } from '@/lib/prisma'
 import DashboardTraffic, { DashboardStats } from '@/components/admin/DashboardTraffic'
+
+const DashboardMascot = lazy(() => import('@/components/admin/DashboardMascot'))
 
 export const dynamic = 'force-dynamic'
 
@@ -95,7 +98,7 @@ export default async function AdminDashboard() {
   ]
 
   return (
-    <div className="adm-page-in" style={{ display: 'flex', flexDirection: 'column', gap: 24, minHeight: 'calc(100vh - 72px)' }}>
+    <div className="adm-page-in adm-dash-page">
       {/* Header */}
       <div className="adm-dash-header">
         <div>
@@ -119,8 +122,13 @@ export default async function AdminDashboard() {
 
       {/* Bottom grid: Traffic card (flex:3) | Content Overview + Recent Activity (flex:2) */}
       <div className="adm-dash-bottom">
-        {/* Left: Traffic card */}
+        {/* Left: Mascot card + Traffic card */}
         <div className="adm-dash-bottom-left">
+          <div className="adm-mascot-card">
+            <Suspense fallback={null}>
+              <DashboardMascot />
+            </Suspense>
+          </div>
           <DashboardTraffic />
         </div>
 
