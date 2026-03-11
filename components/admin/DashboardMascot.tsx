@@ -435,6 +435,7 @@ const THOUGHTS: Record<string, string[]> = {
   calling: ['hey!', 'hello?', 'hi hi!', 'psst!', 'cmdr!', 'yo!'],
   thinking: ['hmm...', '🤔', 'let me think...', '...', 'processing...', '💭', 'wait...', 'uhh...', '🧠'],
   replying: ['bip bup!', 'bzzt!', 'beep boop!', 'whirr~', 'click click!', 'brrrr!', 'zap zap!', 'pip pip!', 'bzzp!', 'woop!', '⚡', '🤖'],
+  peeking: ['👀', '🔍', 'hmm?', 'ooh!', 'what?', '...!', 'heh', '🤨', 'apa tuh?', 'nulis apa?', '👁️', 'wah wah'],
   default: ['☕', '🎵', '👀', '🦀'],
 }
 
@@ -669,6 +670,9 @@ export default function DashboardMascot() {
   const seqRef = useRef<NodeJS.Timeout | null>(null)
   const thinkingRef = useRef<NodeJS.Timeout | null>(null)
   const replyBubbleRef = useRef<NodeJS.Timeout | null>(null)
+  const peekRef = useRef<NodeJS.Timeout | null>(null)
+  const peekBubbleRef = useRef<NodeJS.Timeout | null>(null)
+  const [userTyping, setUserTyping] = useState(false)
 
   // Mascot settings from DB
   const [mascotType, setMascotType] = useState('clawd')
@@ -772,6 +776,52 @@ export default function DashboardMascot() {
     setThought(null)
   }, [])
 
+  // Mascot peeks when user is typing — walks to the right side and shows curious bubbles
+  useEffect(() => {
+    if (!userTyping) return
+
+    // Save current behavior — move mascot to the right (near the chat widget)
+    setTargetX(85 + Math.random() * 10)
+    setFlipped(false)
+    setMascotState('walking')
+
+    // After arriving, show peek bubbles
+    const arriveTimer = setTimeout(() => {
+      setMascotState('idle')
+      const cycle = () => {
+        const pool = THOUGHTS.peeking
+        setThought(pool[Math.floor(Math.random() * pool.length)])
+        peekBubbleRef.current = setTimeout(() => {
+          setThought(null)
+          peekBubbleRef.current = setTimeout(cycle, 600 + Math.random() * 400)
+        }, 1000 + Math.random() * 800)
+      }
+      cycle()
+    }, 1200)
+
+    peekRef.current = arriveTimer
+
+    return () => {
+      clearTimeout(arriveTimer)
+      if (peekBubbleRef.current) clearTimeout(peekBubbleRef.current)
+      setThought(null)
+    }
+  }, [userTyping])
+
+  // Debounced typing detection
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const handleTyping = useCallback((value: string) => {
+    setChatInput(value)
+    if (value.trim().length > 0) {
+      setUserTyping(true)
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+      typingTimeoutRef.current = setTimeout(() => setUserTyping(false), 2000)
+    } else {
+      setUserTyping(false)
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    }
+  }, [])
+
   // Auto-scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -786,7 +836,9 @@ export default function DashboardMascot() {
     setChatInput('')
     setIsTyping(true)
 
-    // Mascot enters thinking mode
+    // Stop peeking, enter thinking mode
+    setUserTyping(false)
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
     startThinking()
 
     // Build message history for API (exclude the initial greeting)
@@ -986,6 +1038,9 @@ export default function DashboardMascot() {
       if (seqRef.current) clearTimeout(seqRef.current)
       if (thinkingRef.current) clearTimeout(thinkingRef.current)
       if (replyBubbleRef.current) clearTimeout(replyBubbleRef.current)
+      if (peekRef.current) clearTimeout(peekRef.current)
+      if (peekBubbleRef.current) clearTimeout(peekBubbleRef.current)
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
     }
   }, [pickAction])
 
@@ -1108,7 +1163,7 @@ export default function DashboardMascot() {
                 placeholder="Say something..."
                 value={chatInput}
                 onChange={(e) => {
-                  setChatInput(e.target.value)
+                  handleTyping(e.target.value)
                   // Auto-resize
                   e.target.style.height = 'auto'
                   e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
