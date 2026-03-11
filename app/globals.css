@@ -3176,53 +3176,88 @@ a.skill-card:hover {
   font-size: 0.8125rem;
 }
 
-/* ── Google Analytics / SEO Tab ────────────────────────── */
+/* ── Google Analytics Tab ───────────────────────────────── */
 
-.adm-traf-seo-kpis {
+/* Range dropdown row inside GA tab */
+.adm-traf-ga-range-row {
   display: flex;
-  gap: 16px;
-  margin-bottom: 4px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-bottom: 12px;
 }
 
-.adm-traf-seo-kpi {
+/* 4 KPI cards row */
+.adm-traf-ga-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.adm-traf-ga-kpi-card {
+  border: 1px solid #ebe7e0;
+  border-radius: 10px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 70px;
+  gap: 4px;
 }
 
-.adm-traf-seo-kpi-val {
-  font-size: 1.125rem;
+[data-theme="dark"] .adm-traf-ga-kpi-card,
+.admin-layout:not([data-theme="light"]) .adm-traf-ga-kpi-card {
+  border-color: var(--admin-border);
+  background: var(--admin-surface-hover);
+}
+
+.adm-traf-ga-kpi-label {
+  font-size: 0.6875rem;
   font-weight: 700;
-  color: #3b3225;
+  color: #b4762c;
+  letter-spacing: 0.04em;
 }
 
-[data-theme="dark"] .adm-traf-seo-kpi-val,
-.admin-layout:not([data-theme="light"]) .adm-traf-seo-kpi-val {
+.adm-traf-ga-kpi-val {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #3b3225;
+  line-height: 1.1;
+}
+
+[data-theme="dark"] .adm-traf-ga-kpi-val,
+.admin-layout:not([data-theme="light"]) .adm-traf-ga-kpi-val {
   color: var(--admin-text-primary);
 }
 
-.adm-traf-seo-kpi-label {
-  font-size: 0.6875rem;
+/* Bottom two columns */
+.adm-traf-ga-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.adm-traf-ga-col:first-child {
+  padding-right: 16px;
+  border-right: 1px solid #ebe7e0;
+}
+
+[data-theme="dark"] .adm-traf-ga-col:first-child,
+.admin-layout:not([data-theme="light"]) .adm-traf-ga-col:first-child {
+  border-color: var(--admin-border);
+}
+
+.adm-traf-ga-col:last-child {
+  padding-left: 16px;
+}
+
+.adm-traf-ga-no-data {
+  font-size: 0.8125rem;
   color: #9a917f;
 }
 
-.adm-traf-seo-delay {
-  font-size: 0.6875rem;
-  color: #c0b9ab;
-  margin: 0 0 10px;
-  font-style: italic;
-}
-
-.adm-traf-seo-table-wrap {
-  margin-bottom: 8px;
-}
-
+/* Reuse table styles */
 .adm-traf-seo-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 
 .adm-traf-seo-th {
@@ -3259,7 +3294,7 @@ a.skill-card:hover {
 }
 
 .adm-traf-seo-td {
-  padding: 7px 8px;
+  padding: 8px 8px;
   color: #3b3225;
 }
 
@@ -3270,31 +3305,99 @@ a.skill-card:hover {
 
 .adm-traf-seo-td--num {
   text-align: right;
+  font-weight: 600;
+}
+
+/* Devices */
+.adm-traf-ga-devices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.adm-traf-ga-device-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+}
+
+.adm-traf-ga-device-name {
+  color: #3b3225;
   font-weight: 500;
 }
 
-.adm-traf-seo-footer {
-  padding-top: 8px;
-  border-top: 1px solid #ebe7e0;
+[data-theme="dark"] .adm-traf-ga-device-name,
+.admin-layout:not([data-theme="light"]) .adm-traf-ga-device-name {
+  color: var(--admin-text-primary);
 }
 
-[data-theme="dark"] .adm-traf-seo-footer,
-.admin-layout:not([data-theme="light"]) .adm-traf-seo-footer {
-  border-color: var(--admin-border);
+.adm-traf-ga-device-pct {
+  text-align: right;
+  font-weight: 700;
+  color: #3b3225;
 }
 
-.adm-traf-seo-footer-link {
-  font-size: 0.75rem;
-  color: #b4762c;
-  text-decoration: none;
-  font-weight: 500;
+[data-theme="dark"] .adm-traf-ga-device-pct,
+.admin-layout:not([data-theme="light"]) .adm-traf-ga-device-pct {
+  color: var(--admin-text-primary);
 }
 
-.adm-traf-seo-footer-link:hover {
-  text-decoration: underline;
+.adm-traf-ga-device-bar-wrap {
+  height: 8px;
+  background: #f0ece4;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
-/* Not configured state */
+[data-theme="dark"] .adm-traf-ga-device-bar-wrap,
+.admin-layout:not([data-theme="light"]) .adm-traf-ga-device-bar-wrap {
+  background: var(--admin-surface-hover);
+}
+
+.adm-traf-ga-device-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Countries */
+.adm-traf-ga-countries {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adm-traf-ga-country-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8125rem;
+  padding: 2px 0;
+}
+
+.adm-traf-ga-country-name {
+  color: #3b3225;
+}
+
+[data-theme="dark"] .adm-traf-ga-country-name,
+.admin-layout:not([data-theme="light"]) .adm-traf-ga-country-name {
+  color: var(--admin-text-primary);
+}
+
+.adm-traf-ga-country-pct {
+  font-weight: 700;
+  color: #3b3225;
+}
+
+[data-theme="dark"] .adm-traf-ga-country-pct,
+.admin-layout:not([data-theme="light"]) .adm-traf-ga-country-pct {
+  color: var(--admin-text-primary);
+}
+
+/* Empty / not configured state */
 .adm-traf-seo-empty {
   display: flex;
   flex-direction: column;
@@ -3302,16 +3405,6 @@ a.skill-card:hover {
   justify-content: center;
   text-align: center;
   gap: 6px;
-}
-
-.adm-traf-seo-empty-icon {
-  color: #c0b9ab;
-  margin-bottom: 2px;
-}
-
-[data-theme="dark"] .adm-traf-seo-empty-icon,
-.admin-layout:not([data-theme="light"]) .adm-traf-seo-empty-icon {
-  color: var(--admin-text-muted);
 }
 
 .adm-traf-seo-empty-title {
@@ -3331,19 +3424,6 @@ a.skill-card:hover {
   color: #9a917f;
   margin: 0;
   max-width: 280px;
-}
-
-.adm-traf-seo-empty-link {
-  display: inline-block;
-  margin-top: 4px;
-  font-size: 0.75rem;
-  color: #b4762c;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.adm-traf-seo-empty-link:hover {
-  text-decoration: underline;
 }
 
 /* ── Traffic Footer (mascot + legend) ────────────────────── */
