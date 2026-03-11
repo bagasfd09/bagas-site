@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
         countryCode: true,
         path: true,
         ipHash: true,
+        userAgent: true,
       },
     })
 
@@ -114,6 +115,21 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // === Devices ===
+    let desktop = 0, mobile = 0, tablet = 0
+    for (const v of views) {
+      const ua = (v.userAgent || '').toLowerCase()
+      if (/ipad|tablet|kindle|playbook/.test(ua)) tablet++
+      else if (/mobile|android|iphone|ipod|opera mini|iemobile/.test(ua)) mobile++
+      else desktop++
+    }
+    const total = desktop + mobile + tablet || 1
+    const devices = [
+      { device: 'Desktop', pct: Math.round((desktop / total) * 100) },
+      { device: 'Mobile', pct: Math.round((mobile / total) * 100) },
+      { device: 'Tablet', pct: Math.round((tablet / total) * 100) },
+    ]
+
     // === Summary ===
     const allVisitors = new Set(views.map((v: { ipHash: string }) => v.ipHash))
     const todayKey = now.toISOString().slice(0, 10)
@@ -132,6 +148,7 @@ export async function GET(request: NextRequest) {
       daily,
       countries,
       topPages,
+      devices,
       ctaStats,
     })
   } catch (err) {
