@@ -3483,7 +3483,7 @@ a.skill-card:hover {
 /* Input area */
 .adm-chat-input-wrap {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 6px;
   padding: 10px 12px;
   border-top: 1px solid #ebe7e0;
@@ -3501,11 +3501,17 @@ a.skill-card:hover {
   padding: 8px 12px;
   font-size: 0.8125rem;
   border: 1px solid #ebe7e0;
-  border-radius: 20px;
+  border-radius: 16px;
   background: #ffffff;
   color: #3b3225;
   outline: none;
   transition: border-color 0.15s;
+  resize: none;
+  overflow-y: auto;
+  min-height: 36px;
+  max-height: 120px;
+  line-height: 1.4;
+  font-family: inherit;
 }
 .adm-chat-input:focus {
   border-color: #b4762c;

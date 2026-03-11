@@ -1185,12 +1185,23 @@ export default function DashboardMascot() {
               className="adm-chat-input-wrap"
               onSubmit={(e) => { e.preventDefault(); handleSend() }}
             >
-              <input
+              <textarea
                 className="adm-chat-input"
-                type="text"
-                placeholder="Say something to Claw'd..."
+                placeholder="Say something..."
                 value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
+                onChange={(e) => {
+                  setChatInput(e.target.value)
+                  // Auto-resize
+                  e.target.style.height = 'auto'
+                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSend()
+                  }
+                }}
+                rows={1}
                 autoFocus
               />
               <button
