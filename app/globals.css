@@ -3173,8 +3173,8 @@ a.skill-card:hover {
 /* ── Chat Panel ──────────────────────────────────────────── */
 
 .adm-chat {
-  width: 360px;
-  height: 440px;
+  width: 440px;
+  height: 560px;
   display: flex;
   flex-direction: column;
   background: #ffffff;
@@ -3381,6 +3381,70 @@ a.skill-card:hover {
 .admin-layout:not([data-theme="light"]) .adm-chat-bubble--user {
   background: #d4a24c;
   color: #1a1a1a;
+}
+
+/* Chat bubble markdown content */
+.adm-chat-bubble code {
+  background: rgba(0, 0, 0, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: 'Source Code Pro', monospace;
+}
+.adm-chat-bubble--user code {
+  background: rgba(255, 255, 255, 0.2);
+}
+[data-theme="dark"] .adm-chat-bubble--clawd code,
+.admin-layout:not([data-theme="light"]) .adm-chat-bubble--clawd code {
+  background: rgba(255, 255, 255, 0.12);
+}
+.adm-chat-bubble pre {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 8px 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 4px 0;
+  font-size: 0.75rem;
+  font-family: 'Source Code Pro', monospace;
+  line-height: 1.5;
+}
+[data-theme="dark"] .adm-chat-bubble pre,
+.admin-layout:not([data-theme="light"]) .adm-chat-bubble pre {
+  background: rgba(0, 0, 0, 0.3);
+}
+.adm-chat-bubble ul, .adm-chat-bubble ol {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+.adm-chat-bubble li {
+  margin: 2px 0;
+}
+.adm-chat-bubble strong {
+  font-weight: 600;
+}
+.adm-chat-bubble p {
+  margin: 0;
+}
+.adm-chat-bubble p + p {
+  margin-top: 6px;
+}
+
+/* Clear chat button */
+.adm-chat-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--admin-text-muted, #9a917f);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+.adm-chat-clear:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
 }
 
 /* Typing indicator */

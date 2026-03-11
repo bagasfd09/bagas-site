@@ -430,6 +430,8 @@ const THOUGHTS: Record<string, string[]> = {
   presenting: ['so...', 'next!', 'here!', '📊', 'tada!', '→'],
   coffee: ['☕', 'aahh', 'sip~', 'nice', 'refuel', '☕'],
   calling: ['hey!', 'hello?', 'hi hi!', 'psst!', 'cmdr!', 'yo!'],
+  thinking: ['hmm...', '🤔', 'let me think...', '...', 'processing...', '💭', 'wait...', 'uhh...', '🧠'],
+  replying: ['bip bup!', 'bzzt!', 'beep boop!', 'whirr~', 'click click!', 'brrrr!', 'zap zap!', 'pip pip!', 'bzzp!', 'woop!', '⚡', '🤖'],
   default: ['☕', '🎵', '👀', '🦀'],
 }
 
@@ -634,6 +636,104 @@ interface ChatMessage {
   text: string
 }
 
+// Simple markdown parser for chat bubbles
+function ChatMarkdown({ text }: { text: string }) {
+  if (!text) return null
+
+  const lines = text.split('\n')
+  const elements: JSX.Element[] = []
+  let listItems: string[] = []
+  let listType: 'ul' | 'ol' | null = null
+
+  const flushList = () => {
+    if (listItems.length > 0 && listType) {
+      const Tag = listType
+      elements.push(
+        <Tag key={`list-${elements.length}`}>
+          {listItems.map((item, i) => <li key={i}>{parseInline(item)}</li>)}
+        </Tag>
+      )
+      listItems = []
+      listType = null
+    }
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    // Unordered list
+    if (/^[-*]\s+/.test(line)) {
+      if (listType !== 'ul') flushList()
+      listType = 'ul'
+      listItems.push(line.replace(/^[-*]\s+/, ''))
+      continue
+    }
+
+    // Ordered list
+    if (/^\d+\.\s+/.test(line)) {
+      if (listType !== 'ol') flushList()
+      listType = 'ol'
+      listItems.push(line.replace(/^\d+\.\s+/, ''))
+      continue
+    }
+
+    flushList()
+
+    // Code block (```)
+    if (line.startsWith('```')) {
+      const codeLines: string[] = []
+      i++
+      while (i < lines.length && !lines[i].startsWith('```')) {
+        codeLines.push(lines[i])
+        i++
+      }
+      elements.push(<pre key={`code-${elements.length}`}><code>{codeLines.join('\n')}</code></pre>)
+      continue
+    }
+
+    // Empty line
+    if (!line.trim()) continue
+
+    // Regular paragraph
+    elements.push(<p key={`p-${elements.length}`}>{parseInline(line)}</p>)
+  }
+
+  flushList()
+  return <>{elements}</>
+}
+
+// Parse inline markdown: **bold**, `code`, *italic*
+function parseInline(text: string): (string | JSX.Element)[] {
+  const parts: (string | JSX.Element)[] = []
+  let remaining = text
+  let keyIdx = 0
+
+  while (remaining.length > 0) {
+    // Code: `...`
+    const codeMatch = remaining.match(/^(.*?)`([^`]+)`(.*)$/)
+    if (codeMatch) {
+      if (codeMatch[1]) parts.push(...parseInline(codeMatch[1]))
+      parts.push(<code key={`c${keyIdx++}`}>{codeMatch[2]}</code>)
+      remaining = codeMatch[3]
+      continue
+    }
+
+    // Bold: **...**
+    const boldMatch = remaining.match(/^(.*?)\*\*([^*]+)\*\*(.*)$/)
+    if (boldMatch) {
+      if (boldMatch[1]) parts.push(boldMatch[1])
+      parts.push(<strong key={`b${keyIdx++}`}>{boldMatch[2]}</strong>)
+      remaining = boldMatch[3]
+      continue
+    }
+
+    parts.push(remaining)
+    break
+  }
+
+  return parts
+}
+
 export default function DashboardMascot() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [x, setX] = useState(50) // percentage position
@@ -649,6 +749,8 @@ export default function DashboardMascot() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const karateRef = useRef<NodeJS.Timeout | null>(null)
   const seqRef = useRef<NodeJS.Timeout | null>(null)
+  const thinkingRef = useRef<NodeJS.Timeout | null>(null)
+  const replyBubbleRef = useRef<NodeJS.Timeout | null>(null)
 
   // Mascot settings from DB
   const [mascotType, setMascotType] = useState('clawd')
@@ -671,12 +773,86 @@ export default function DashboardMascot() {
   // Chat state
   const [chatOpen, setChatOpen] = useState(false)
   const [chatInput, setChatInput] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 0, role: 'clawd', text: "Hey! I'm Claw'd 🦀 What's up?" },
-  ])
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === 'undefined') return [{ id: 0, role: 'clawd', text: "Hey! I'm Claw'd 🦀 What's up?" }]
+    try {
+      const saved = localStorage.getItem('mascot-chat-history')
+      if (saved) {
+        const parsed = JSON.parse(saved) as ChatMessage[]
+        if (parsed.length > 0) return parsed
+      }
+    } catch { /* ignore */ }
+    return [{ id: 0, role: 'clawd', text: "Hey! I'm Claw'd 🦀 What's up?" }]
+  })
   const [isTyping, setIsTyping] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
-  const msgIdRef = useRef(1)
+  const msgIdRef = useRef((() => {
+    if (typeof window === 'undefined') return 1
+    try {
+      const saved = localStorage.getItem('mascot-chat-history')
+      if (saved) {
+        const parsed = JSON.parse(saved) as ChatMessage[]
+        return Math.max(...parsed.map(m => m.id), 0) + 1
+      }
+    } catch { /* ignore */ }
+    return 1
+  })())
+
+  // Persist chat history to localStorage
+  useEffect(() => {
+    localStorage.setItem('mascot-chat-history', JSON.stringify(messages))
+  }, [messages])
+
+  const clearChat = useCallback(() => {
+    const greeting: ChatMessage = { id: 0, role: 'clawd', text: `Hey! I'm ${displayName} 🦀 What's up?` }
+    setMessages([greeting])
+    msgIdRef.current = 1
+    localStorage.removeItem('mascot-chat-history')
+  }, [displayName])
+
+  // Start mascot "thinking" mode — idle with cycling thought bubbles
+  const startThinking = useCallback(() => {
+    setMascotState('idle')
+    const cycle = () => {
+      const pool = THOUGHTS.thinking
+      setThought(pool[Math.floor(Math.random() * pool.length)])
+      thinkingRef.current = setTimeout(() => {
+        setThought(null)
+        thinkingRef.current = setTimeout(cycle, 400 + Math.random() * 300)
+      }, 1200 + Math.random() * 800)
+    }
+    cycle()
+  }, [])
+
+  const stopThinking = useCallback(() => {
+    if (thinkingRef.current) clearTimeout(thinkingRef.current)
+    setThought(null)
+  }, [])
+
+  // Show robot babble bubbles while streaming response
+  const startReplyBubbles = useCallback(() => {
+    setMascotState('coding')
+    let count = 0
+    const cycle = () => {
+      if (count >= 6) { // max 6 bubbles then stop
+        setThought(null)
+        return
+      }
+      const pool = THOUGHTS.replying
+      setThought(pool[Math.floor(Math.random() * pool.length)])
+      count++
+      replyBubbleRef.current = setTimeout(() => {
+        setThought(null)
+        replyBubbleRef.current = setTimeout(cycle, 300 + Math.random() * 400)
+      }, 800 + Math.random() * 600)
+    }
+    cycle()
+  }, [])
+
+  const stopReplyBubbles = useCallback(() => {
+    if (replyBubbleRef.current) clearTimeout(replyBubbleRef.current)
+    setThought(null)
+  }, [])
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -691,6 +867,9 @@ export default function DashboardMascot() {
     setMessages((prev) => [...prev, userMsg])
     setChatInput('')
     setIsTyping(true)
+
+    // Mascot enters thinking mode
+    startThinking()
 
     // Build message history for API (exclude the initial greeting)
     const apiMessages = [...messages.filter(m => m.role === 'user' || m.role === 'clawd').map(m => ({
@@ -712,6 +891,7 @@ export default function DashboardMascot() {
           text: `⚠️ ${err.error || 'Failed to connect to OpenClaw'}`,
         }])
         setIsTyping(false)
+        stopThinking()
         return
       }
 
@@ -722,6 +902,10 @@ export default function DashboardMascot() {
       const replyId = msgIdRef.current++
       setMessages((prev) => [...prev, { id: replyId, role: 'clawd', text: '' }])
       setIsTyping(false)
+
+      // Switch from thinking to replying mode — robot babble!
+      stopThinking()
+      startReplyBubbles()
 
       const decoder = new TextDecoder()
       let buffer = ''
@@ -752,14 +936,19 @@ export default function DashboardMascot() {
           }
         }
       }
+
+      // Done streaming — back to normal
+      stopReplyBubbles()
     } catch {
       setMessages((prev) => [...prev, {
         id: msgIdRef.current++, role: 'clawd',
         text: '⚠️ Failed to connect to OpenClaw gateway',
       }])
       setIsTyping(false)
+      stopThinking()
+      stopReplyBubbles()
     }
-  }, [chatInput, messages])
+  }, [chatInput, messages, startThinking, stopThinking, startReplyBubbles, stopReplyBubbles])
 
   // Animation frame ticker
   useEffect(() => {
@@ -877,6 +1066,8 @@ export default function DashboardMascot() {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       if (karateRef.current) clearTimeout(karateRef.current)
       if (seqRef.current) clearTimeout(seqRef.current)
+      if (thinkingRef.current) clearTimeout(thinkingRef.current)
+      if (replyBubbleRef.current) clearTimeout(replyBubbleRef.current)
     }
   }, [pickAction])
 
@@ -954,11 +1145,18 @@ export default function DashboardMascot() {
                   </span>
                 </div>
               </div>
-              <button className="adm-chat-close" onClick={() => setChatOpen(false)}>
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
-                </svg>
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <button className="adm-chat-clear" onClick={clearChat} title="Clear chat">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M2 4h12M5.33 4V2.67a1.33 1.33 0 011.34-1.34h2.66a1.33 1.33 0 011.34 1.34V4M12.67 4v9.33a1.33 1.33 0 01-1.34 1.34H4.67a1.33 1.33 0 01-1.34-1.34V4" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <button className="adm-chat-close" onClick={() => setChatOpen(false)}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className="adm-chat-messages">
@@ -966,7 +1164,7 @@ export default function DashboardMascot() {
                 <div key={msg.id} className={`adm-chat-msg adm-chat-msg--${msg.role}`}>
                   {msg.role === 'clawd' && <span className="adm-chat-msg-avatar"><MiniClawd size={18} /></span>}
                   <div className={`adm-chat-bubble adm-chat-bubble--${msg.role}`}>
-                    {msg.text}
+                    <ChatMarkdown text={msg.text} />
                   </div>
                 </div>
               ))}
