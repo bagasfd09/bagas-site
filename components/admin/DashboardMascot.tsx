@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, memo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -640,8 +640,8 @@ interface ChatMessage {
   text: string
 }
 
-// Markdown renderer for chat bubbles
-function ChatMarkdown({ text }: { text: string }) {
+// Markdown renderer for chat bubbles — memoized to avoid re-parsing on scroll
+const ChatMarkdown = memo(function ChatMarkdown({ text }: { text: string }) {
   if (!text) return null
   return (
     <ReactMarkdown
@@ -651,7 +651,19 @@ function ChatMarkdown({ text }: { text: string }) {
       {text}
     </ReactMarkdown>
   )
-}
+})
+
+// Memoized chat message row — prevents re-renders of old messages during scroll/typing
+const ChatMsg = memo(function ChatMsg({ msg }: { msg: ChatMessage }) {
+  return (
+    <div className={`adm-chat-msg adm-chat-msg--${msg.role}`}>
+      {msg.role === 'clawd' && <span className="adm-chat-msg-avatar"><MiniClawd size={18} /></span>}
+      <div className={`adm-chat-bubble adm-chat-bubble--${msg.role}`}>
+        <ChatMarkdown text={msg.text} />
+      </div>
+    </div>
+  )
+})
 
 /* ── Behavior Mode State Machine ─────────────────────────────
    Single source of truth for mascot control flow.
@@ -1179,12 +1191,7 @@ export default function DashboardMascot() {
 
             <div className="adm-chat-messages">
               {messages.map((msg) => (
-                <div key={msg.id} className={`adm-chat-msg adm-chat-msg--${msg.role}`}>
-                  {msg.role === 'clawd' && <span className="adm-chat-msg-avatar"><MiniClawd size={18} /></span>}
-                  <div className={`adm-chat-bubble adm-chat-bubble--${msg.role}`}>
-                    <ChatMarkdown text={msg.text} />
-                  </div>
-                </div>
+                <ChatMsg key={msg.id} msg={msg} />
               ))}
               {isTyping && (
                 <div className="adm-chat-msg adm-chat-msg--clawd">
