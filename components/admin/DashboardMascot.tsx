@@ -435,6 +435,7 @@ const THOUGHTS: Record<string, string[]> = {
   calling: ['hey!', 'hello?', 'hi hi!', 'psst!', 'cmdr!', 'yo!'],
   thinking: ['hmm...', '🤔', 'let me think...', '...', 'processing...', '💭', 'wait...', 'uhh...', '🧠'],
   replying: ['bip bup!', 'bzzt!', 'beep boop!', 'whirr~', 'click click!', 'brrrr!', 'zap zap!', 'pip pip!', 'bzzp!', 'woop!', '⚡', '🤖'],
+  peeking: ['ooh~', 'go on...', 'spill it!', '👀', 'I see you~', 'type away!', 'hmm?!', 'oh oh!', 'don\'t mind me', '*peeks*', 'hehe~', 'I\'m watching!', 'tell me more!', 'yes yes?', '*leans in*', 'oh this is good', 'keep going!'],
   default: ['☕', '🎵', '👀', '🦀'],
 }
 
@@ -652,6 +653,14 @@ function ChatMarkdown({ text }: { text: string }) {
   )
 }
 
+/* ── Behavior Mode State Machine ─────────────────────────────
+   Single source of truth for mascot control flow.
+   Priority: replying (3) > thinking (2) > peeking (1) > random (0)
+   ──────────────────────────────────────────────────────────── */
+type BehaviorMode = 'random' | 'peeking' | 'thinking' | 'replying'
+const MODE_PRIORITY: Record<BehaviorMode, number> = { random: 0, peeking: 1, thinking: 2, replying: 3 }
+type TimerKey = 'action' | 'karate' | 'sequence' | 'bubble' | 'transition'
+
 export default function DashboardMascot() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [x, setX] = useState(50) // percentage position
@@ -664,11 +673,49 @@ export default function DashboardMascot() {
   const [presentPhase, setPresentPhase] = useState<PresentPhase>('walk')
   const [coffeePhase, setCoffeePhase] = useState<CoffeePhase>('walk')
   const [callingPhase, setCallingPhase] = useState<CallingPhase>('wave-1')
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const karateRef = useRef<NodeJS.Timeout | null>(null)
-  const seqRef = useRef<NodeJS.Timeout | null>(null)
-  const thinkingRef = useRef<NodeJS.Timeout | null>(null)
-  const replyBubbleRef = useRef<NodeJS.Timeout | null>(null)
+
+  // ── Consolidated refs: behaviorMode + timers ──
+  const behaviorModeRef = useRef<BehaviorMode>('random')
+  const timersRef = useRef<Record<TimerKey, NodeJS.Timeout | null>>({
+    action: null, karate: null, sequence: null, bubble: null, transition: null,
+  })
+
+  const clearTimer = useCallback((key: TimerKey) => {
+    if (timersRef.current[key]) {
+      clearTimeout(timersRef.current[key]!)
+      timersRef.current[key] = null
+    }
+  }, [])
+
+  const clearAllTimers = useCallback(() => {
+    (Object.keys(timersRef.current) as TimerKey[]).forEach((k) => clearTimer(k))
+  }, [clearTimer])
+
+  // ── Mode cleanup: clear bubble + transition timers, null thought ──
+  const cleanupMode = useCallback(() => {
+    clearTimer('bubble')
+    clearTimer('transition')
+    setThought(null)
+  }, [clearTimer])
+
+  // ── enterMode: only succeeds if newMode priority >= current ──
+  const enterMode = useCallback((newMode: BehaviorMode): boolean => {
+    const current = behaviorModeRef.current
+    if (MODE_PRIORITY[newMode] < MODE_PRIORITY[current]) return false
+    // Clean up previous mode
+    if (current !== 'random') cleanupMode()
+    if (current === 'random') clearTimer('action') // stop random loop
+    behaviorModeRef.current = newMode
+    return true
+  }, [cleanupMode, clearTimer])
+
+  // ── exitMode: only exits if caller IS the current owner ──
+  const exitMode = useCallback((mode: BehaviorMode) => {
+    if (behaviorModeRef.current !== mode) return // not the owner
+    cleanupMode()
+    behaviorModeRef.current = 'random'
+    // pickAction will be called by the pickActionRef loop
+  }, [cleanupMode])
 
   // Mascot settings from DB
   const [mascotType, setMascotType] = useState('clawd')
@@ -728,49 +775,75 @@ export default function DashboardMascot() {
     localStorage.removeItem('mascot-chat-history')
   }, [displayName])
 
-  // Start mascot "thinking" mode — idle with cycling thought bubbles
+  // ── Peeking: walk right, writing state, curious bubbles ──
+  const startPeeking = useCallback(() => {
+    if (!enterMode('peeking')) return
+
+    // Walk to the right side (near chat widget)
+    setFlipped(false)
+    setTargetX(82 + Math.random() * 10)
+    setMascotState('walking')
+
+    // Show first bubble immediately
+    const pool = THOUGHTS.peeking
+    setThought(pool[Math.floor(Math.random() * pool.length)])
+
+    // Cycle through thought bubbles — show 3-4.5s, pause 800ms, then next
+    const cycle = () => {
+      if (behaviorModeRef.current !== 'peeking') return
+      setThought(null)
+      timersRef.current.bubble = setTimeout(() => {
+        if (behaviorModeRef.current !== 'peeking') return
+        const p = THOUGHTS.peeking
+        setThought(p[Math.floor(Math.random() * p.length)])
+        timersRef.current.bubble = setTimeout(cycle, 3000 + Math.random() * 1500)
+      }, 800)
+    }
+    timersRef.current.bubble = setTimeout(cycle, 3000 + Math.random() * 1500)
+  }, [enterMode])
+
+  const stopPeeking = useCallback(() => {
+    exitMode('peeking')
+  }, [exitMode])
+
+  // ── Thinking: idle + cycling thought bubbles ──
   const startThinking = useCallback(() => {
+    if (!enterMode('thinking')) return
     setMascotState('idle')
     const cycle = () => {
+      if (behaviorModeRef.current !== 'thinking') return
       const pool = THOUGHTS.thinking
       setThought(pool[Math.floor(Math.random() * pool.length)])
-      thinkingRef.current = setTimeout(() => {
+      timersRef.current.bubble = setTimeout(() => {
         setThought(null)
-        thinkingRef.current = setTimeout(cycle, 400 + Math.random() * 300)
+        timersRef.current.bubble = setTimeout(cycle, 400 + Math.random() * 300)
       }, 1200 + Math.random() * 800)
     }
     cycle()
-  }, [])
+  }, [enterMode])
 
-  const stopThinking = useCallback(() => {
-    if (thinkingRef.current) clearTimeout(thinkingRef.current)
-    setThought(null)
-  }, [])
-
-  // Show robot babble bubbles while streaming response
+  // ── Replying: coding + robot babble ──
   const startReplyBubbles = useCallback(() => {
+    if (!enterMode('replying')) return
     setMascotState('coding')
     let count = 0
     const cycle = () => {
-      if (count >= 6) { // max 6 bubbles then stop
-        setThought(null)
-        return
-      }
+      if (behaviorModeRef.current !== 'replying') return
+      if (count >= 6) { setThought(null); return }
       const pool = THOUGHTS.replying
       setThought(pool[Math.floor(Math.random() * pool.length)])
       count++
-      replyBubbleRef.current = setTimeout(() => {
+      timersRef.current.bubble = setTimeout(() => {
         setThought(null)
-        replyBubbleRef.current = setTimeout(cycle, 300 + Math.random() * 400)
+        timersRef.current.bubble = setTimeout(cycle, 300 + Math.random() * 400)
       }, 800 + Math.random() * 600)
     }
     cycle()
-  }, [])
+  }, [enterMode])
 
   const stopReplyBubbles = useCallback(() => {
-    if (replyBubbleRef.current) clearTimeout(replyBubbleRef.current)
-    setThought(null)
-  }, [])
+    exitMode('replying')
+  }, [exitMode])
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -786,7 +859,7 @@ export default function DashboardMascot() {
     setChatInput('')
     setIsTyping(true)
 
-    // Mascot enters thinking mode
+    // peeking → thinking (priority 2 > 1, auto-cleans peeking)
     startThinking()
 
     // Build message history for API (exclude the initial greeting)
@@ -809,7 +882,7 @@ export default function DashboardMascot() {
           text: `⚠️ ${err.error || 'Failed to connect to OpenClaw'}`,
         }])
         setIsTyping(false)
-        stopThinking()
+        exitMode('thinking')
         return
       }
 
@@ -821,8 +894,7 @@ export default function DashboardMascot() {
       setMessages((prev) => [...prev, { id: replyId, role: 'clawd', text: '' }])
       setIsTyping(false)
 
-      // Switch from thinking to replying mode — robot babble!
-      stopThinking()
+      // thinking → replying (priority 3 > 2, auto-cleans thinking)
       startReplyBubbles()
 
       const decoder = new TextDecoder()
@@ -855,7 +927,7 @@ export default function DashboardMascot() {
         }
       }
 
-      // Done streaming — back to normal
+      // Done streaming — replying → random
       stopReplyBubbles()
     } catch {
       setMessages((prev) => [...prev, {
@@ -863,10 +935,11 @@ export default function DashboardMascot() {
         text: '⚠️ Failed to connect to OpenClaw gateway',
       }])
       setIsTyping(false)
-      stopThinking()
-      stopReplyBubbles()
+      // Force back to random regardless of current mode
+      cleanupMode()
+      behaviorModeRef.current = 'random'
     }
-  }, [chatInput, messages, startThinking, stopThinking, startReplyBubbles, stopReplyBubbles])
+  }, [chatInput, messages, startThinking, exitMode, startReplyBubbles, stopReplyBubbles, cleanupMode])
 
   // Animation frame ticker
   useEffect(() => {
@@ -874,12 +947,13 @@ export default function DashboardMascot() {
     return () => clearInterval(interval)
   }, [])
 
-  // Show a thought bubble for a given action
+  // Show a thought bubble for a given action (only in random mode)
   const showThought = useCallback((action: MascotState) => {
+    if (behaviorModeRef.current !== 'random') return
     const pool = THOUGHTS[action] || THOUGHTS.default
     const bubble = pool[Math.floor(Math.random() * pool.length)]
     setThought(bubble)
-    setTimeout(() => setThought(null), 1800)
+    timersRef.current.bubble = setTimeout(() => setThought(null), 1800)
   }, [])
 
   // Run the full karate combo sequence
@@ -899,7 +973,7 @@ export default function DashboardMascot() {
         setTimeout(() => setThought(null), step.duration - 100)
       }
       i++
-      karateRef.current = setTimeout(nextPhase, step.duration)
+      timersRef.current.karate = setTimeout(nextPhase, step.duration)
     }
     nextPhase()
   }, [])
@@ -919,13 +993,17 @@ export default function DashboardMascot() {
         setTimeout(() => setThought(null), Math.min(step.duration - 100, 1500))
       }
       i++
-      seqRef.current = setTimeout(nextPhase, step.duration)
+      timersRef.current.sequence = setTimeout(nextPhase, step.duration)
     }
     nextPhase()
   }, [])
 
-  // Random behavior loop
-  const pickAction = useCallback(() => {
+  // Random behavior loop — stabilized with ref to avoid useEffect re-runs
+  const pickActionRef = useRef<() => void>(() => {})
+  pickActionRef.current = () => {
+    // Guard: only run in random mode
+    if (behaviorModeRef.current !== 'random') return
+
     const actions: MascotState[] = ['idle', 'walking', 'coding', 'writing', 'karate', 'phone', 'presenting', 'coffee', 'calling']
     const weights = [10, 18, 20, 12, 12, 10, 6, 6, 6]
     const total = weights.reduce((a, b) => a + b, 0)
@@ -937,6 +1015,10 @@ export default function DashboardMascot() {
     }
 
     setMascotState(action)
+
+    const scheduleNext = (delay: number) => {
+      timersRef.current.action = setTimeout(() => pickActionRef.current(), delay)
+    }
 
     if (action === 'walking') {
       const newTarget = Math.random() * 80 + 10
@@ -953,19 +1035,19 @@ export default function DashboardMascot() {
       setFlipped(false)
     } else if (action === 'karate') {
       setFlipped(false)
-      runKarateSequence(() => { timeoutRef.current = setTimeout(pickAction, 500) })
+      runKarateSequence(() => scheduleNext(500))
       return
     } else if (action === 'presenting') {
       setFlipped(false)
-      runSequence(PRESENT_SEQUENCE, setPresentPhase, 'presenting', () => { timeoutRef.current = setTimeout(pickAction, 500) })
+      runSequence(PRESENT_SEQUENCE, setPresentPhase, 'presenting', () => scheduleNext(500))
       return
     } else if (action === 'coffee') {
       setFlipped(false)
-      runSequence(COFFEE_SEQUENCE, setCoffeePhase, 'coffee', () => { timeoutRef.current = setTimeout(pickAction, 500) })
+      runSequence(COFFEE_SEQUENCE, setCoffeePhase, 'coffee', () => scheduleNext(500))
       return
     } else if (action === 'calling') {
       setFlipped(false)
-      runSequence(CALLING_SEQUENCE, setCallingPhase, 'calling', () => { timeoutRef.current = setTimeout(pickAction, 500) })
+      runSequence(CALLING_SEQUENCE, setCallingPhase, 'calling', () => scheduleNext(500))
       return
     }
 
@@ -975,28 +1057,45 @@ export default function DashboardMascot() {
       : action === 'phone' ? 3000 + Math.random() * 4000
       : 1500 + Math.random() * 2500
 
-    timeoutRef.current = setTimeout(pickAction, duration)
-  }, [x, showThought, runKarateSequence, runSequence])
+    scheduleNext(duration)
+  }
 
+  // Start random loop once + cleanup. Stable deps (runs once).
   useEffect(() => {
-    timeoutRef.current = setTimeout(pickAction, 1000)
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      if (karateRef.current) clearTimeout(karateRef.current)
-      if (seqRef.current) clearTimeout(seqRef.current)
-      if (thinkingRef.current) clearTimeout(thinkingRef.current)
-      if (replyBubbleRef.current) clearTimeout(replyBubbleRef.current)
-    }
-  }, [pickAction])
+    timersRef.current.action = setTimeout(() => pickActionRef.current(), 1000)
+    return () => clearAllTimers()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // Smooth movement
+  // Re-kick random loop when mode returns to random (after chat modes exit)
+  const prevModeRef = useRef<BehaviorMode>('random')
+  useEffect(() => {
+    // Poll behaviorModeRef changes via frame ticks (frame updates every 200ms)
+    const mode = behaviorModeRef.current
+    if (prevModeRef.current !== 'random' && mode === 'random') {
+      // Mode just returned to random — restart the loop
+      clearTimer('action')
+      timersRef.current.action = setTimeout(() => pickActionRef.current(), 500)
+    }
+    prevModeRef.current = mode
+  }, [frame, clearTimer])
+
+  // Smooth movement — arrival is mode-aware
   useEffect(() => {
     if (mascotState !== 'walking') return
     const interval = setInterval(() => {
       setX((prev) => {
         const diff = targetX - prev
         if (Math.abs(diff) < 0.5) {
-          setMascotState('idle')
+          // Arrived! Set state based on current behavior mode
+          const mode = behaviorModeRef.current
+          if (mode === 'peeking') {
+            setMascotState('writing')  // glasses + paper + pencil
+            setFlipped(false)
+          } else if (mode === 'random') {
+            setMascotState('idle')
+          }
+          // thinking/replying: keep current state (they set their own)
           return targetX
         }
         const step = Math.sign(diff) * Math.min(Math.abs(diff), 0.8)
@@ -1020,7 +1119,8 @@ export default function DashboardMascot() {
           style={{
             left: `${x}%`,
             transform: `translateX(-50%) scaleX(${flipped ? -1 : 1})`,
-          }}
+            '--mascot-dir': flipped ? -1 : 1,
+          } as React.CSSProperties}
         >
           {thought && (
             <div className="adm-mascot-thought">
@@ -1113,6 +1213,8 @@ export default function DashboardMascot() {
                   e.target.style.height = 'auto'
                   e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
                 }}
+                onFocus={startPeeking}
+                onBlur={stopPeeking}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
