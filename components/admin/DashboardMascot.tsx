@@ -673,6 +673,7 @@ export default function DashboardMascot() {
   const peekRef = useRef<NodeJS.Timeout | null>(null)
   const peekBubbleRef = useRef<NodeJS.Timeout | null>(null)
   const [userTyping, setUserTyping] = useState(false)
+  const chatBusyRef = useRef(false) // true when peeking/thinking/replying — pauses pickAction
 
   // Mascot settings from DB
   const [mascotType, setMascotType] = useState('clawd')
@@ -734,6 +735,8 @@ export default function DashboardMascot() {
 
   // Start mascot "thinking" mode — idle with cycling thought bubbles
   const startThinking = useCallback(() => {
+    chatBusyRef.current = true
+    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null }
     setMascotState('idle')
     const cycle = () => {
       const pool = THOUGHTS.thinking
@@ -753,6 +756,7 @@ export default function DashboardMascot() {
 
   // Show robot babble bubbles while streaming response
   const startReplyBubbles = useCallback(() => {
+    chatBusyRef.current = true
     setMascotState('coding')
     let count = 0
     const cycle = () => {
@@ -774,13 +778,25 @@ export default function DashboardMascot() {
   const stopReplyBubbles = useCallback(() => {
     if (replyBubbleRef.current) clearTimeout(replyBubbleRef.current)
     setThought(null)
+    chatBusyRef.current = false
   }, [])
 
   // Mascot peeks when user is typing — walks to the right side and shows curious bubbles
   useEffect(() => {
-    if (!userTyping) return
+    if (!userTyping) {
+      // Only release chatBusy if we were peeking (not thinking/replying)
+      if (peekRef.current) {
+        chatBusyRef.current = false
+        peekRef.current = null
+      }
+      return
+    }
 
-    // Save current behavior — move mascot to the right (near the chat widget)
+    // Pause random behavior loop
+    chatBusyRef.current = true
+    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null }
+
+    // Move mascot to the right (near the chat widget)
     setTargetX(85 + Math.random() * 10)
     setFlipped(false)
     setMascotState('walking')
@@ -978,6 +994,11 @@ export default function DashboardMascot() {
 
   // Random behavior loop
   const pickAction = useCallback(() => {
+    // Skip if mascot is busy with chat interaction (peeking/thinking/replying)
+    if (chatBusyRef.current) {
+      timeoutRef.current = setTimeout(pickAction, 1000)
+      return
+    }
     const actions: MascotState[] = ['idle', 'walking', 'coding', 'writing', 'karate', 'phone', 'presenting', 'coffee', 'calling']
     const weights = [10, 18, 20, 12, 12, 10, 6, 6, 6]
     const total = weights.reduce((a, b) => a + b, 0)
