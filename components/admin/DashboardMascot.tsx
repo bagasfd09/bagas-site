@@ -1,21 +1,35 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { ByteSprite, NekoSprite, SpaceBackground, GardenBackground } from '@/components/admin/MascotSprites'
 
 /* ── Claw'd Pixel Mascot ─────────────────────────────────────
    A coral pixel crab that wanders above the traffic legend.
    ──────────────────────────────────────────────────────────── */
 
-type MascotState = 'idle' | 'walking' | 'coding' | 'writing' | 'karate'
+type MascotState = 'idle' | 'walking' | 'coding' | 'writing' | 'karate' | 'phone' | 'presenting' | 'coffee' | 'calling'
 
 // Karate has multiple phases for a long animated sequence
 type KaratePhase = 'ready' | 'punch-l' | 'punch-r' | 'kick' | 'spin' | 'chop' | 'bow'
 
+// Presenting phases
+type PresentPhase = 'walk' | 'point-1' | 'point-2' | 'point-3' | 'draw' | 'done'
+
+// Coffee break phases
+type CoffeePhase = 'walk' | 'pour' | 'sip-1' | 'sip-2' | 'done'
+
+// Calling commander phases
+type CallingPhase = 'wave-1' | 'jump' | 'wave-2' | 'jump-2' | 'wave-3'
+
 // Pixel art rendered as SVG for crisp scaling — Claw'd the crab!
-function PixelSprite({ state, frame, karatePhase }: { state: MascotState; frame: number; karatePhase: KaratePhase }) {
-  // Grid widens for props (laptop / paper)
+export function PixelSprite({ state, frame, karatePhase, presentPhase, coffeePhase, callingPhase }: {
+  state: MascotState; frame: number; karatePhase: KaratePhase;
+  presentPhase: PresentPhase; coffeePhase: CoffeePhase; callingPhase: CallingPhase
+}) {
+  // Grid widens for props
   const s = 5
-  const gridW = (state === 'coding' || state === 'writing') ? 22 : 16
+  const needsWideGrid = state === 'coding' || state === 'writing' || state === 'phone' || state === 'presenting' || state === 'coffee'
+  const gridW = needsWideGrid ? 22 : 16
   const gridH = 16
   const w = gridW * s
   const h = gridH * s
@@ -43,14 +57,21 @@ function PixelSprite({ state, frame, karatePhase }: { state: MascotState; frame:
 
   const headband = '#e8c84a'   // yellow headband for karate
   const impactStar = '#ffeb3b' // impact star flash
+  const phoneBody = '#2a2a2a'
+  const phoneScreen = '#4fc3f7'
+  const coffeeCup = '#ffffff'
+  const coffeeLiquid = '#6d4c41'
+  const pointerStick = '#8a7458'
 
   // Animation helpers
   const legPhase = state === 'walking' ? (frame % 4) : 0
   const bounce = (state === 'karate' && (karatePhase === 'kick' || karatePhase === 'spin'))
-    ? (frame % 2 === 0 ? -2 : 0) : 0
-  const sitSquash = state === 'coding' || state === 'writing' ? 1 : 0
+    ? (frame % 2 === 0 ? -2 : 0)
+    : (state === 'calling' && (callingPhase === 'jump' || callingPhase === 'jump-2'))
+    ? (frame % 2 === 0 ? -3 : 0) : 0
+  const sitSquash = state === 'coding' || state === 'writing' || state === 'phone' ? 1 : 0
   const blink = state === 'idle' && frame % 12 === 0
-  const clawWave = state === 'karate' ? false : (frame % 6 < 3)
+  const clawWave = state === 'karate' ? false : state === 'calling' ? true : (frame % 6 < 3)
 
   // Helper to draw a pixel
   const px = (x: number, y: number, color: string, key?: string) => (
@@ -201,26 +222,30 @@ function PixelSprite({ state, frame, karatePhase }: { state: MascotState; frame:
       pixels.push(px(13, 6, claw, 'rc1'), px(14, 6, claw, 'rc2'), px(15, 5, claw, 'rc3'))
       pixels.push(px(14, 7, claw, 'rc4'))
     }
+  } else if (state === 'phone') {
+    pixels.push(px(2, 7, claw, 'lc1'), px(1, 7, claw, 'lc2'))
+    if (clawWave) { pixels.push(px(0, 6, claw, 'lc3'), px(1, 6, claw, 'lc4'), px(0, 8, claw, 'lc5')) }
+    else { pixels.push(px(0, 7, claw, 'lc3'), px(1, 6, claw, 'lc4')) }
+  } else if (state === 'presenting') {
+    pixels.push(px(2, 7, claw, 'lc1'), px(1, 7, claw, 'lc2'), px(0, 6, claw, 'lc3'), px(1, 6, claw, 'lc4'))
+    pixels.push(px(13, 7, claw, 'rc1'), px(14, 7, claw, 'rc2'))
+  } else if (state === 'coffee') {
+    pixels.push(px(2, 7, claw, 'lc1'), px(1, 7, claw, 'lc2'), px(0, 7, claw, 'lc3'), px(1, 6, claw, 'lc4'))
+    pixels.push(px(13, 7, claw, 'rc1'), px(13, 8, claw, 'rc2'))
+  } else if (state === 'calling') {
+    const waveFrame = frame % 4
+    if (waveFrame < 2) { pixels.push(px(2, 5, claw, 'lc1'), px(1, 4, claw, 'lc2'), px(0, 3, claw, 'lc3'), px(1, 5, claw, 'lc4')) }
+    else { pixels.push(px(2, 6, claw, 'lc1'), px(1, 5, claw, 'lc2'), px(0, 4, claw, 'lc3'), px(1, 6, claw, 'lc4')) }
+    if (waveFrame >= 2) { pixels.push(px(13, 5, claw, 'rc1'), px(14, 4, claw, 'rc2'), px(15, 3, claw, 'rc3'), px(14, 5, claw, 'rc4')) }
+    else { pixels.push(px(13, 6, claw, 'rc1'), px(14, 5, claw, 'rc2'), px(15, 4, claw, 'rc3'), px(14, 6, claw, 'rc4')) }
   } else {
     // Normal claws (idle, walking, coding, writing)
-    // Left claw
     pixels.push(px(2, 7, claw, 'lc1'), px(1, 7, claw, 'lc2'))
-    if (clawWave) {
-      pixels.push(px(0, 6, claw, 'lc3'), px(1, 6, claw, 'lc4'))
-      pixels.push(px(0, 8, claw, 'lc5'), px(1, 8, claw, 'lc6'))
-    } else {
-      pixels.push(px(0, 7, claw, 'lc3'), px(1, 6, claw, 'lc4'))
-      pixels.push(px(0, 7, claw, 'lc5'))
-    }
-    // Right claw
+    if (clawWave) { pixels.push(px(0, 6, claw, 'lc3'), px(1, 6, claw, 'lc4'), px(0, 8, claw, 'lc5'), px(1, 8, claw, 'lc6')) }
+    else { pixels.push(px(0, 7, claw, 'lc3'), px(1, 6, claw, 'lc4'), px(0, 7, claw, 'lc5')) }
     pixels.push(px(13, 7, claw, 'rc1'), px(14, 7, claw, 'rc2'))
-    if (clawWave) {
-      pixels.push(px(15, 6, claw, 'rc3'), px(14, 6, claw, 'rc4'))
-      pixels.push(px(15, 8, claw, 'rc5'), px(14, 8, claw, 'rc6'))
-    } else {
-      pixels.push(px(15, 7, claw, 'rc3'), px(14, 6, claw, 'rc4'))
-      pixels.push(px(15, 7, claw, 'rc5'))
-    }
+    if (clawWave) { pixels.push(px(15, 6, claw, 'rc3'), px(14, 6, claw, 'rc4'), px(15, 8, claw, 'rc5'), px(14, 8, claw, 'rc6')) }
+    else { pixels.push(px(15, 7, claw, 'rc3'), px(14, 6, claw, 'rc4'), px(15, 7, claw, 'rc5')) }
   }
 
   // ── Coding state: tiny pixel laptop in front ──
@@ -270,6 +295,46 @@ function PixelSprite({ state, frame, karatePhase }: { state: MascotState; frame:
     pixels.push(px(px0 + 2, 12 + pencilBob, pencilTip, 'pt1'))
   }
 
+  // ── Phone call state ──
+  if (state === 'phone') {
+    const phoneBob = frame % 4 < 2 ? 0 : 1
+    pixels.push(px(14, 4 + phoneBob, phoneBody, 'ph1'), px(15, 4 + phoneBob, phoneBody, 'ph2'))
+    pixels.push(px(14, 5 + phoneBob, phoneScreen, 'ph3'), px(15, 5 + phoneBob, phoneScreen, 'ph4'))
+    pixels.push(px(14, 6 + phoneBob, phoneBody, 'ph5'), px(15, 6 + phoneBob, phoneBody, 'ph6'))
+    pixels.push(px(13, 5 + phoneBob, claw, 'phc1'), px(13, 6 + phoneBob, claw, 'phc2'))
+    if (frame % 6 < 3) pixels.push(px(5, 1, antenna, 'nod1'), px(10, 1, antenna, 'nod2'))
+  }
+
+  // ── Presenting state ──
+  if (state === 'presenting') {
+    const pointY = presentPhase === 'point-1' ? 5 : presentPhase === 'point-2' ? 7 : presentPhase === 'point-3' ? 9 : 6
+    pixels.push(px(14, 7, pointerStick, 'ptr1'), px(15, 6, pointerStick, 'ptr2'))
+    pixels.push(px(16, 5, pointerStick, 'ptr3'), px(17, pointY > 6 ? 5 : 4, pointerStick, 'ptr4'))
+    pixels.push(px(18, pointY > 7 ? 4 : 3, '#e53935', 'ptip'))
+    if (presentPhase === 'draw') {
+      const drawFrame = frame % 6
+      pixels.push(px(16, 8, '#1e88e5', 'dr1'))
+      if (drawFrame >= 2) pixels.push(px(17, 8, '#1e88e5', 'dr2'), px(18, 8, '#1e88e5', 'dr3'))
+      if (drawFrame >= 4) pixels.push(px(16, 9, '#e53935', 'dr4'), px(17, 9, '#e53935', 'dr5'))
+    }
+  }
+
+  // ── Coffee break ──
+  if (state === 'coffee') {
+    if (coffeePhase === 'sip-1' || coffeePhase === 'sip-2') {
+      const sipBob = coffeePhase === 'sip-2' ? 1 : 0
+      pixels.push(px(14, 5 + sipBob, coffeeCup, 'cup1'), px(15, 5 + sipBob, coffeeCup, 'cup2'), px(16, 5 + sipBob, coffeeCup, 'cup3'))
+      pixels.push(px(14, 6 + sipBob, coffeeCup, 'cup4'), px(15, 6 + sipBob, coffeeLiquid, 'cup5'), px(16, 6 + sipBob, coffeeCup, 'cup6'))
+      if (frame % 4 < 2) {
+        pixels.push(px(15, 3 + sipBob, '#c8c0b4', 'stm1'), px(14, 2 + sipBob, '#c8c0b4', 'stm2'))
+      }
+    } else if (coffeePhase === 'pour') {
+      pixels.push(px(15, 9, coffeeCup, 'cup1'), px(16, 9, coffeeCup, 'cup2'), px(17, 9, coffeeCup, 'cup3'))
+      pixels.push(px(15, 10, coffeeCup, 'cup4'), px(16, 10, coffeeLiquid, 'cup5'), px(17, 10, coffeeCup, 'cup6'))
+      if (frame % 2 === 0) pixels.push(px(16, 8, '#4fc3f7', 'wtr1'), px(16, 7, '#4fc3f7', 'wtr2'))
+    }
+  }
+
   // ── Legs (4 pairs) ──
   const legRow = bodyEnd + 1
   if (state === 'walking') {
@@ -278,10 +343,15 @@ function PixelSprite({ state, frame, karatePhase }: { state: MascotState; frame:
     pixels.push(px(5 + offset, legRow, shellDark, 'l2a'), px(5 + offset, legRow + 1, legTip, 'l2b'))
     pixels.push(px(10 + offset, legRow, shellDark, 'l3a'), px(10 + offset, legRow + 1, legTip, 'l3b'))
     pixels.push(px(11 - offset, legRow, shellDark, 'l4a'), px(11 - offset, legRow + 1, legTip, 'l4b'))
-  } else if (state === 'coding' || state === 'writing') {
-    // Sitting — legs spread flat
+  } else if (state === 'coding' || state === 'writing' || state === 'phone') {
     pixels.push(px(3, legRow, shellDark, 'l1a'), px(5, legRow, shellDark, 'l2a'))
     pixels.push(px(10, legRow, shellDark, 'l3a'), px(12, legRow, shellDark, 'l4a'))
+  } else if (state === 'calling') {
+    const callLeg = frame % 2
+    pixels.push(px(4 - callLeg, legRow, shellDark, 'l1a'), px(4 - callLeg, legRow + 1, legTip, 'l1b'))
+    pixels.push(px(6 + callLeg, legRow, shellDark, 'l2a'), px(6 + callLeg, legRow + 1, legTip, 'l2b'))
+    pixels.push(px(9 + callLeg, legRow, shellDark, 'l3a'), px(9 + callLeg, legRow + 1, legTip, 'l3b'))
+    pixels.push(px(11 - callLeg, legRow, shellDark, 'l4a'), px(11 - callLeg, legRow + 1, legTip, 'l4b'))
   } else if (state === 'karate') {
     if (karatePhase === 'kick') {
       // One leg kicks out to the right
@@ -328,11 +398,38 @@ function PixelSprite({ state, frame, karatePhase }: { state: MascotState; frame:
   )
 }
 
+// Mini static Claw'd — for chat avatars and FAB
+function MiniClawd({ size = 24 }: { size?: number }) {
+  const s = size / 12
+  const px = (x: number, y: number, c: string) => (
+    <rect key={`${x}-${y}`} x={x * s} y={y * s} width={s} height={s} fill={c} />
+  )
+  const sh = '#e8735a', sd = '#c4573f', sl = '#f2a08a', ey = '#1a1a1a', ew = '#fff', an = '#c4573f'
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ imageRendering: 'pixelated', display: 'block' }}>
+      {px(3, 0, an)}{px(8, 0, an)}{px(4, 1, an)}{px(7, 1, an)}
+      {px(4, 2, sh)}{px(5, 2, sh)}{px(6, 2, sh)}{px(7, 2, sh)}
+      {px(3, 3, sh)}{px(4, 3, sh)}{px(5, 3, sh)}{px(6, 3, sh)}{px(7, 3, sh)}{px(8, 3, sh)}
+      {px(3, 4, sd)}{px(4, 4, ew)}{px(5, 4, ey)}{px(6, 4, ey)}{px(7, 4, ew)}{px(8, 4, sd)}
+      {px(3, 5, sh)}{px(4, 5, sh)}{px(5, 5, sd)}{px(6, 5, sd)}{px(7, 5, sh)}{px(8, 5, sh)}
+      {px(2, 6, sd)}{px(3, 6, sh)}{px(4, 6, sh)}{px(5, 6, sl)}{px(6, 6, sl)}{px(7, 6, sh)}{px(8, 6, sh)}{px(9, 6, sd)}
+      {px(2, 7, sd)}{px(3, 7, sh)}{px(4, 7, sl)}{px(5, 7, sl)}{px(6, 7, sl)}{px(7, 7, sl)}{px(8, 7, sh)}{px(9, 7, sd)}
+      {px(0, 5, sh)}{px(1, 5, sh)}{px(1, 4, sh)}{px(10, 5, sh)}{px(11, 5, sh)}{px(10, 4, sh)}
+      {px(3, 8, sd)}{px(5, 8, sd)}{px(6, 8, sd)}{px(8, 8, sd)}
+      {px(3, 9, ew)}{px(5, 9, ew)}{px(6, 9, ew)}{px(8, 9, ew)}
+    </svg>
+  )
+}
+
 // Speech bubbles that appear occasionally
 const THOUGHTS: Record<string, string[]> = {
   coding: ['</>', '{…}', 'fn()', '$ _', '0x1', '>>>'],
   writing: ['hmm', '✏️', 'note', 'idea!', 'draft', '📝'],
   karate: ['HYA!', 'KIA!', '🥋', 'HAH!', 'OSS!', '👊'],
+  phone: ['mhm', 'yes', 'ok!', 'got it', 'right', '📞'],
+  presenting: ['so...', 'next!', 'here!', '📊', 'tada!', '→'],
+  coffee: ['☕', 'aahh', 'sip~', 'nice', 'refuel', '☕'],
+  calling: ['hey!', 'hello?', 'hi hi!', 'psst!', 'cmdr!', 'yo!'],
   default: ['☕', '🎵', '👀', '🦀'],
 }
 
@@ -357,8 +454,25 @@ const KARATE_SEQUENCE: { phase: KaratePhase; duration: number }[] = [
   { phase: 'bow', duration: 1200 },
 ]
 
+const PRESENT_SEQUENCE: { phase: PresentPhase; duration: number }[] = [
+  { phase: 'walk', duration: 1200 }, { phase: 'point-1', duration: 1000 }, { phase: 'point-2', duration: 1000 },
+  { phase: 'point-3', duration: 1000 }, { phase: 'draw', duration: 2000 }, { phase: 'point-1', duration: 800 }, { phase: 'done', duration: 600 },
+]
+
+const COFFEE_SEQUENCE: { phase: CoffeePhase; duration: number }[] = [
+  { phase: 'walk', duration: 1500 }, { phase: 'pour', duration: 1200 },
+  { phase: 'sip-1', duration: 1000 }, { phase: 'sip-2', duration: 800 },
+  { phase: 'sip-1', duration: 1000 }, { phase: 'sip-2', duration: 800 }, { phase: 'done', duration: 500 },
+]
+
+const CALLING_SEQUENCE: { phase: CallingPhase; duration: number }[] = [
+  { phase: 'wave-1', duration: 1000 }, { phase: 'jump', duration: 600 }, { phase: 'wave-2', duration: 1200 },
+  { phase: 'jump-2', duration: 600 }, { phase: 'wave-3', duration: 1500 }, { phase: 'jump', duration: 500 },
+  { phase: 'wave-1', duration: 1000 }, { phase: 'jump-2', duration: 500 }, { phase: 'wave-3', duration: 800 },
+]
+
 // Office background — pixel art scene
-function OfficeBackground() {
+export function OfficeBackground() {
   return (
     <svg className="adm-office-bg" viewBox="0 0 600 250" preserveAspectRatio="xMidYMid slice">
       {/* Wall — light gray office wall */}
@@ -529,8 +643,30 @@ export default function DashboardMascot() {
   const [frame, setFrame] = useState(0)
   const [thought, setThought] = useState<string | null>(null)
   const [karatePhase, setKaratePhase] = useState<KaratePhase>('ready')
+  const [presentPhase, setPresentPhase] = useState<PresentPhase>('walk')
+  const [coffeePhase, setCoffeePhase] = useState<CoffeePhase>('walk')
+  const [callingPhase, setCallingPhase] = useState<CallingPhase>('wave-1')
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const karateRef = useRef<NodeJS.Timeout | null>(null)
+  const seqRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Mascot settings from DB
+  const [mascotType, setMascotType] = useState('clawd')
+  const [bgType, setBgType] = useState('office')
+  const [displayName, setDisplayName] = useState("Claw'd")
+
+  useEffect(() => {
+    fetch('/api/admin/mascot')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.error) {
+          if (data.mascotType) setMascotType(data.mascotType)
+          if (data.background) setBgType(data.background)
+          if (data.displayName) setDisplayName(data.displayName)
+        }
+      })
+      .catch(console.error)
+  }, [])
 
   // Chat state
   const [chatOpen, setChatOpen] = useState(false)
@@ -612,10 +748,30 @@ export default function DashboardMascot() {
     nextPhase()
   }, [])
 
+  // Generic sequence runner
+  const runSequence = useCallback(<T,>(
+    sequence: { phase: T; duration: number }[], setter: (phase: T) => void, thoughtKey: string, onDone: () => void
+  ) => {
+    let i = 0
+    function nextPhase() {
+      if (i >= sequence.length) { onDone(); return }
+      const step = sequence[i]
+      setter(step.phase)
+      if (i % 2 === 0) {
+        const pool = THOUGHTS[thoughtKey] || THOUGHTS.default
+        setThought(pool[Math.floor(Math.random() * pool.length)])
+        setTimeout(() => setThought(null), Math.min(step.duration - 100, 1500))
+      }
+      i++
+      seqRef.current = setTimeout(nextPhase, step.duration)
+    }
+    nextPhase()
+  }, [])
+
   // Random behavior loop
   const pickAction = useCallback(() => {
-    const actions: MascotState[] = ['idle', 'walking', 'coding', 'writing', 'karate']
-    const weights = [15, 25, 25, 15, 20]
+    const actions: MascotState[] = ['idle', 'walking', 'coding', 'writing', 'karate', 'phone', 'presenting', 'coffee', 'calling']
+    const weights = [10, 18, 20, 12, 12, 10, 6, 6, 6]
     const total = weights.reduce((a, b) => a + b, 0)
     let r = Math.random() * total
     let action: MascotState = 'idle'
@@ -636,28 +792,42 @@ export default function DashboardMascot() {
     } else if (action === 'writing') {
       showThought('writing')
       setFlipped(false)
+    } else if (action === 'phone') {
+      showThought('phone')
+      setFlipped(false)
     } else if (action === 'karate') {
       setFlipped(false)
-      // Run the full karate combo, then pick next action
-      runKarateSequence(() => {
-        timeoutRef.current = setTimeout(pickAction, 500)
-      })
-      return // don't schedule below — karate manages its own timing
+      runKarateSequence(() => { timeoutRef.current = setTimeout(pickAction, 500) })
+      return
+    } else if (action === 'presenting') {
+      setFlipped(false)
+      runSequence(PRESENT_SEQUENCE, setPresentPhase, 'presenting', () => { timeoutRef.current = setTimeout(pickAction, 500) })
+      return
+    } else if (action === 'coffee') {
+      setFlipped(false)
+      runSequence(COFFEE_SEQUENCE, setCoffeePhase, 'coffee', () => { timeoutRef.current = setTimeout(pickAction, 500) })
+      return
+    } else if (action === 'calling') {
+      setFlipped(false)
+      runSequence(CALLING_SEQUENCE, setCallingPhase, 'calling', () => { timeoutRef.current = setTimeout(pickAction, 500) })
+      return
     }
 
     const duration = action === 'walking' ? 2000 + Math.random() * 3000
       : action === 'coding' ? 4000 + Math.random() * 5000
       : action === 'writing' ? 4000 + Math.random() * 4000
+      : action === 'phone' ? 3000 + Math.random() * 4000
       : 1500 + Math.random() * 2500
 
     timeoutRef.current = setTimeout(pickAction, duration)
-  }, [x, showThought, runKarateSequence])
+  }, [x, showThought, runKarateSequence, runSequence])
 
   useEffect(() => {
     timeoutRef.current = setTimeout(pickAction, 1000)
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       if (karateRef.current) clearTimeout(karateRef.current)
+      if (seqRef.current) clearTimeout(seqRef.current)
     }
   }, [pickAction])
 
@@ -686,7 +856,7 @@ export default function DashboardMascot() {
         ref={containerRef}
         className="adm-mascot-area"
       >
-        <OfficeBackground />
+        {bgType === 'space' ? <SpaceBackground /> : bgType === 'garden' ? <GardenBackground /> : <OfficeBackground />}
         <div
           className="adm-mascot"
           style={{
@@ -700,7 +870,13 @@ export default function DashboardMascot() {
             </div>
           )}
           <div className={`adm-mascot-sprite adm-mascot-sprite--${mascotState}`}>
-            <PixelSprite state={mascotState} frame={frame} karatePhase={karatePhase} />
+            {mascotType === 'byte' ? (
+              <ByteSprite state={mascotState} frame={frame} karatePhase={karatePhase} presentPhase={presentPhase} coffeePhase={coffeePhase} callingPhase={callingPhase} />
+            ) : mascotType === 'neko' ? (
+              <NekoSprite state={mascotState} frame={frame} karatePhase={karatePhase} presentPhase={presentPhase} coffeePhase={coffeePhase} callingPhase={callingPhase} />
+            ) : (
+              <PixelSprite state={mascotState} frame={frame} karatePhase={karatePhase} presentPhase={presentPhase} coffeePhase={coffeePhase} callingPhase={callingPhase} />
+            )}
           </div>
           <div className="adm-mascot-shadow" />
         </div>
@@ -711,7 +887,7 @@ export default function DashboardMascot() {
         {/* Toggle FAB */}
         {!chatOpen && (
           <button className="adm-chat-fab" onClick={() => setChatOpen(true)}>
-            <span className="adm-chat-fab-emoji">🦀</span>
+            <span className="adm-chat-fab-emoji"><MiniClawd size={28} /></span>
           </button>
         )}
 
@@ -720,9 +896,9 @@ export default function DashboardMascot() {
           <div className="adm-chat">
             <div className="adm-chat-header">
               <div className="adm-chat-header-info">
-                <span className="adm-chat-avatar">🦀</span>
+                <span className="adm-chat-avatar"><MiniClawd size={22} /></span>
                 <div>
-                  <span className="adm-chat-name">Claw&apos;d</span>
+                  <span className="adm-chat-name">{displayName}</span>
                   <span className="adm-chat-status">
                     <span className="adm-chat-status-dot" />
                     Online
@@ -739,7 +915,7 @@ export default function DashboardMascot() {
             <div className="adm-chat-messages">
               {messages.map((msg) => (
                 <div key={msg.id} className={`adm-chat-msg adm-chat-msg--${msg.role}`}>
-                  {msg.role === 'clawd' && <span className="adm-chat-msg-avatar">🦀</span>}
+                  {msg.role === 'clawd' && <span className="adm-chat-msg-avatar"><MiniClawd size={18} /></span>}
                   <div className={`adm-chat-bubble adm-chat-bubble--${msg.role}`}>
                     {msg.text}
                   </div>
@@ -747,7 +923,7 @@ export default function DashboardMascot() {
               ))}
               {isTyping && (
                 <div className="adm-chat-msg adm-chat-msg--clawd">
-                  <span className="adm-chat-msg-avatar">🦀</span>
+                  <span className="adm-chat-msg-avatar"><MiniClawd size={18} /></span>
                   <div className="adm-chat-bubble adm-chat-bubble--clawd adm-chat-typing">
                     <span className="adm-chat-dot" />
                     <span className="adm-chat-dot" />

@@ -18,6 +18,7 @@ import {
   Sun,
   Menu,
   X,
+  Shell,
 } from 'lucide-react'
 import { useAdminTheme } from './AdminThemeProvider'
 
@@ -32,6 +33,7 @@ const mainNav = [
 
 const secondaryNav = [
   { href: '/admin/settings', label: 'Site Settings', icon: Settings },
+  { href: '/admin/mascot', label: 'Mascot', icon: Shell },
   { href: '/admin/about', label: 'About Me', icon: User },
 ]
 
