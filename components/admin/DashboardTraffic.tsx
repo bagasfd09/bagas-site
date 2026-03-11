@@ -21,19 +21,12 @@ interface AnalyticsData {
 
 type TabId = 'overview' | 'realtime' | 'google'
 
-interface RealtimeView {
-  path: string
-  country: string
-  countryCode: string
-  referrer: string | null
-  createdAt: string
-}
-
 interface RealtimeData {
   activeNow: number
   viewsLast30: number
-  recentViews: RealtimeView[]
-  countries: { country: string; code: string; views: number }[]
+  timeline: { minuteAgo: number; count: number }[]
+  topPages: { path: string; count: number }[]
+  topReferrers: { referrer: string; count: number }[]
 }
 
 interface SeoData {
@@ -57,17 +50,6 @@ function pct(today: number, yesterday: number) {
   return { text: `${p >= 0 ? '+' : ''}${p}%`, cls: p > 0 ? 'up' : p < 0 ? 'down' : '' }
 }
 
-function flag(code: string): string {
-  if (!code || code === 'XX') return '\u{1F310}'
-  return String.fromCodePoint(...code.toUpperCase().split('').map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
-}
-
-function timeAgo(iso: string): string {
-  const diff = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
-  if (diff < 60) return `${diff}s ago`
-  const m = Math.floor(diff / 60)
-  return `${m}m ago`
-}
 
 /* ── Wave Chart SVG ────────────────────────────────────────── */
 
@@ -250,6 +232,44 @@ function StaticWaveChart() {
   )
 }
 
+/* ── Dot Timeline Chart ─────────────────────────────────────── */
+
+function DotTimeline({ timeline }: { timeline: RealtimeData['timeline'] }) {
+  const maxCount = Math.max(...timeline.map((t) => t.count), 1)
+  // Max dots per column — scale so biggest column is ~6 dots tall
+  const maxDots = Math.min(Math.max(maxCount, 1), 8)
+
+  return (
+    <div className="adm-traf-rt-timeline">
+      <div className="adm-traf-rt-dots-grid">
+        {timeline.map((bucket, i) => {
+          const dots = Math.min(bucket.count, maxDots)
+          // Color intensity: older = lighter, newer = darker
+          const age = 1 - (bucket.minuteAgo / 30)
+          return (
+            <div key={i} className="adm-traf-rt-dots-col">
+              {Array.from({ length: dots }).map((_, j) => (
+                <div
+                  key={j}
+                  className="adm-traf-rt-dot-item"
+                  style={{
+                    opacity: 0.35 + age * 0.65,
+                    background: age > 0.7 ? '#b4762c' : age > 0.4 ? '#d4a24c' : '#d9c9a8',
+                  }}
+                />
+              ))}
+            </div>
+          )
+        })}
+      </div>
+      <div className="adm-traf-rt-timeline-labels">
+        <span>30 min ago</span>
+        <span>Now</span>
+      </div>
+    </div>
+  )
+}
+
 /* ── Real-time Tab Content ─────────────────────────────────── */
 
 function RealtimeContent() {
@@ -288,53 +308,63 @@ function RealtimeContent() {
     )
   }
 
-  const maxCountryViews = data.countries.length > 0 ? data.countries[0].views : 1
+  const maxPageCount = data.topPages.length > 0 ? data.topPages[0].count : 1
 
   return (
     <div className="adm-traf-tab-content">
-      {/* KPI row */}
-      <div className="adm-traf-rt-kpis">
-        <div className="adm-traf-rt-kpi">
-          <span className="adm-traf-rt-dot" />
-          <span className="adm-traf-rt-kpi-val">{data.activeNow}</span>
-          <span className="adm-traf-rt-kpi-label">active now</span>
-        </div>
-        <div className="adm-traf-rt-kpi">
-          <span className="adm-traf-rt-kpi-val">{data.viewsLast30}</span>
-          <span className="adm-traf-rt-kpi-label">views (30m)</span>
-        </div>
+      {/* Big centered active count */}
+      <div className="adm-traf-rt-hero">
+        <span className="adm-traf-rt-hero-num">{data.activeNow}</span>
+        <span className="adm-traf-rt-hero-label">active visitors right now</span>
       </div>
 
-      {/* Activity feed */}
-      {data.recentViews.length > 0 ? (
-        <div className="adm-traf-rt-feed">
-          {data.recentViews.map((v, i) => (
-            <div key={`${v.createdAt}-${i}`} className="adm-traf-rt-row" style={{ animationDelay: `${i * 30}ms` }}>
-              <span className="adm-traf-rt-time">{timeAgo(v.createdAt)}</span>
-              <span className="adm-traf-rt-flag">{flag(v.countryCode)}</span>
-              <span className="adm-traf-rt-path">{v.path}</span>
-              {v.referrer && <span className="adm-traf-rt-ref">{v.referrer.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}</span>}
+      {/* Dot timeline */}
+      <div className="adm-traf-rt-section">
+        <span className="adm-traf-rt-section-title">VISITORS — LAST 30 MINUTES</span>
+        <DotTimeline timeline={data.timeline} />
+      </div>
+
+      {/* Bottom two columns */}
+      {(data.topPages.length > 0 || data.topReferrers.length > 0) && (
+        <div className="adm-traf-rt-bottom">
+          {/* Top Active Pages */}
+          <div className="adm-traf-rt-col">
+            <span className="adm-traf-rt-section-title">TOP ACTIVE PAGES</span>
+            <div className="adm-traf-rt-list">
+              {data.topPages.map((p) => (
+                <div key={p.path} className="adm-traf-rt-list-row">
+                  <span className="adm-traf-rt-list-label">{p.path}</span>
+                  <div className="adm-traf-rt-list-bar-wrap">
+                    <div
+                      className="adm-traf-rt-list-bar"
+                      style={{ width: `${(p.count / maxPageCount) * 100}%` }}
+                    />
+                  </div>
+                  <span className="adm-traf-rt-list-count">{p.count}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="adm-traf-rt-empty-feed">
-          <p>No recent visitors</p>
+          </div>
+
+          {/* Top Referrers */}
+          <div className="adm-traf-rt-col">
+            <span className="adm-traf-rt-section-title">TOP REFERRERS</span>
+            <div className="adm-traf-rt-list">
+              {data.topReferrers.map((r) => (
+                <div key={r.referrer} className="adm-traf-rt-list-row">
+                  <span className="adm-traf-rt-list-label">{r.referrer}</span>
+                  <span className="adm-traf-rt-list-count">{r.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Country mini-bars */}
-      {data.countries.length > 0 && (
-        <div className="adm-traf-rt-countries">
-          {data.countries.map((c) => (
-            <div key={c.code} className="adm-traf-rt-country">
-              <span className="adm-traf-rt-country-name">{flag(c.code)} {c.country}</span>
-              <div className="adm-traf-rt-country-bar-wrap">
-                <div className="adm-traf-rt-country-bar" style={{ width: `${(c.views / maxCountryViews) * 100}%` }} />
-              </div>
-              <span className="adm-traf-rt-country-count">{c.views}</span>
-            </div>
-          ))}
+      {/* Empty state */}
+      {data.viewsLast30 === 0 && data.topPages.length === 0 && (
+        <div className="adm-traf-rt-empty-feed">
+          <p>No recent visitors</p>
         </div>
       )}
     </div>
@@ -579,8 +609,16 @@ export default function DashboardTraffic() {
       <div className="adm-traf-header">
         <div>
           <h2 className="adm-traf-title">Traffic</h2>
-          <p className="adm-traf-sub">Site analytics overview</p>
+          <p className="adm-traf-sub">
+            {activeTab === 'realtime' ? 'Live visitors on your site' : 'Site analytics overview'}
+          </p>
         </div>
+        {activeTab === 'realtime' && (
+          <span className="adm-traf-rt-live-badge">
+            <span className="adm-traf-rt-live-dot" />
+            Live
+          </span>
+        )}
         {activeTab === 'overview' && (
           <div className="adm-traf-range-wrap" ref={dropRef}>
             <button className="adm-traf-range" onClick={() => setOpen(!open)}>
