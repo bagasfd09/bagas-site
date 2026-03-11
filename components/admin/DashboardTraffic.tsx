@@ -535,8 +535,10 @@ function GoogleAnalyticsContent() {
           <div className="adm-traf-ga-devices">
             {devices.map((d) => (
               <div key={d.device} className="adm-traf-ga-device-row">
-                <span className="adm-traf-ga-device-name">{d.device}</span>
-                <span className="adm-traf-ga-device-pct">{d.pct}%</span>
+                <div className="adm-traf-ga-device-head">
+                  <span className="adm-traf-ga-device-name">{d.device}</span>
+                  <span className="adm-traf-ga-device-pct">{d.pct}%</span>
+                </div>
                 <div className="adm-traf-ga-device-bar-wrap">
                   <div
                     className="adm-traf-ga-device-bar"
