@@ -148,3 +148,32 @@ model SiteSettings {
   orderProjects   Int     @default(4)
   updatedAt  DateTime @updatedAt
 }
+
+model MascotSettings {
+  id              String   @id @default("main")
+  mascotType      String   @default("clawd")
+  displayName     String   @default("Claw'd")
+  greeting        String   @default("Hey! I'm Claw'd. What's up?")
+  systemPrompt    String   @db.Text @default("You are Claw'd, a cheerful pixel crab assistant. You help the commander manage their site with enthusiasm and crab puns.")
+  // OpenClaw integration
+  gatewayUrl      String   @default("http://localhost:18789")
+  authToken       String   @default("")
+  agentId         String   @default("main")
+  // Animation weights (percentages, must sum to 100)
+  weightIdle      Int      @default(10)
+  weightWalking   Int      @default(18)
+  weightCoding    Int      @default(20)
+  weightWriting   Int      @default(12)
+  weightKarate    Int      @default(12)
+  weightPhone     Int      @default(10)
+  weightPresenting Int     @default(6)
+  weightCoffee    Int      @default(6)
+  weightCalling   Int      @default(6)
+  // Appearance
+  scale           Float    @default(1.0)
+  moveSpeed       String   @default("normal")
+  primaryColor    String   @default("#e8735a")
+  showOn          String[] @default(["dashboard", "all"])
+  background      String   @default("office")
+  updatedAt       DateTime @updatedAt
+}
