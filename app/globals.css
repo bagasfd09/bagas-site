@@ -2967,6 +2967,9 @@ a.skill-card:hover {
 .adm-traf-tab-content {
   padding: 12px 16px 8px;
   min-height: 200px;
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* ── Real-time Tab ─────────────────────────────────────── */
