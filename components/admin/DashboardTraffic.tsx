@@ -103,11 +103,6 @@ function WaveChart({ data }: { data: DailyData[] }) {
     setHovered(idx >= 0 && idx < data.length ? idx : null)
   }
 
-  // Bounce rate placeholder
-  const totalViews = views.reduce((s, v) => s + v, 0)
-  const totalVisitors = visitors.reduce((s, v) => s + v, 0)
-  const bounceRate = totalVisitors > 0 ? Math.round((1 - totalVisitors / Math.max(totalViews, 1)) * 100) : 0
-
   return (
     <div ref={wrapRef} className="adm-traf-chart-wrap" onMouseLeave={() => setHovered(null)}>
       <svg ref={ref} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMin meet" className="adm-traf-svg" onMouseMove={onMove} style={{ width: '100%', display: 'block' }}>
@@ -175,23 +170,6 @@ function WaveChart({ data }: { data: DailyData[] }) {
         </div>
       )}
 
-      {/* Legend row */}
-      <div className="adm-traf-legend">
-        <div className="adm-traf-leg-items">
-          <span className="adm-traf-leg">
-            <span className="adm-traf-leg-line" style={{ background: '#b4762c' }} />
-            Page Views
-          </span>
-          <span className="adm-traf-leg">
-            <span className="adm-traf-leg-line adm-traf-leg-line--dashed" style={{ background: '#d4a24c' }} />
-            Unique Visitors
-          </span>
-        </div>
-        <div className="adm-traf-bounce">
-          <span className="adm-traf-bounce-val">{bounceRate}%</span>
-          <span className="adm-traf-bounce-label">Avg. Bounce Rate</span>
-        </div>
-      </div>
     </div>
   )
 }
@@ -233,22 +211,6 @@ function StaticWaveChart() {
           <text key={label} x={36 + i * (548 / 5)} y={214} textAnchor="middle" fill="#9a917f" fontSize="8">{label}</text>
         ))}
       </svg>
-      <div className="adm-traf-legend">
-        <div className="adm-traf-leg-items">
-          <span className="adm-traf-leg">
-            <span className="adm-traf-leg-line" style={{ background: '#b4762c' }} />
-            Page Views
-          </span>
-          <span className="adm-traf-leg">
-            <span className="adm-traf-leg-line adm-traf-leg-line--dashed" style={{ background: '#d4a24c' }} />
-            Unique Visitors
-          </span>
-        </div>
-        <div className="adm-traf-bounce">
-          <span className="adm-traf-bounce-val">68%</span>
-          <span className="adm-traf-bounce-label">Avg. Bounce Rate</span>
-        </div>
-      </div>
     </div>
   )
 }
@@ -425,6 +387,26 @@ export default function DashboardTraffic() {
       ) : (
         <StaticWaveChart />
       )}
+
+      {/* Legend row */}
+      <div className="adm-traf-legend">
+        <div className="adm-traf-leg-items">
+          <span className="adm-traf-leg">
+            <span className="adm-traf-leg-line" style={{ background: '#b4762c' }} />
+            Page Views
+          </span>
+          <span className="adm-traf-leg">
+            <span className="adm-traf-leg-line adm-traf-leg-line--dashed" style={{ background: '#d4a24c' }} />
+            Unique Visitors
+          </span>
+        </div>
+        <div className="adm-traf-bounce">
+          <span className="adm-traf-bounce-val">
+            {data ? `${Math.round((1 - (data.summary.uniqueVisitors / Math.max(data.summary.totalViews, 1))) * 100)}%` : '57%'}
+          </span>
+          <span className="adm-traf-bounce-label">Avg. Bounce Rate</span>
+        </div>
+      </div>
     </div>
   )
 }
