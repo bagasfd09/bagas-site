@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback, memo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import { MiniClawd } from '@/components/admin/DashboardMascot'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -11,25 +12,6 @@ interface ChatMessage {
   id: number
   role: 'user' | 'clawd'
   text: string
-}
-
-/* ── Mini Claw'd Avatar ────────────────────────────────────── */
-
-function MiniClawd({ size = 24 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <ellipse cx="12" cy="15" rx="7" ry="6" fill="#e8735a" />
-      <circle cx="9" cy="13" r="1.5" fill="#1a1a2e" />
-      <circle cx="15" cy="13" r="1.5" fill="#1a1a2e" />
-      <circle cx="9.6" cy="12.6" r="0.5" fill="#fff" />
-      <circle cx="15.6" cy="12.6" r="0.5" fill="#fff" />
-      <ellipse cx="12" cy="16" rx="2" ry="0.8" fill="#c0513a" />
-      <path d="M5 13 C3 9, 4 5, 7 7" stroke="#e8735a" strokeWidth="2" strokeLinecap="round" fill="none" />
-      <path d="M19 13 C21 9, 20 5, 17 7" stroke="#e8735a" strokeWidth="2" strokeLinecap="round" fill="none" />
-      <circle cx="3.5" cy="8" r="1.5" fill="#e8735a" />
-      <circle cx="20.5" cy="8" r="1.5" fill="#e8735a" />
-    </svg>
-  )
 }
 
 /* ── Memoized components ───────────────────────────────────── */

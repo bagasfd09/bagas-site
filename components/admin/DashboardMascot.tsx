@@ -399,7 +399,7 @@ export function PixelSprite({ state, frame, karatePhase, presentPhase, coffeePha
 }
 
 // Mini static Claw'd — for chat avatars and FAB
-function MiniClawd({ size = 24 }: { size?: number }) {
+export function MiniClawd({ size = 24 }: { size?: number }) {
   const s = size / 12
   const px = (x: number, y: number, c: string) => (
     <rect key={`${x}-${y}`} x={x * s} y={y * s} width={s} height={s} fill={c} />

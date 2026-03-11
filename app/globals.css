@@ -3645,8 +3645,8 @@ a.skill-card:hover {
 /* ── Chat Panel ──────────────────────────────────────────── */
 
 .adm-chat {
-  width: 520px;
-  height: 680px;
+  width: 660px;
+  height: 840px;
   display: flex;
   flex-direction: column;
   background: #ffffff;
