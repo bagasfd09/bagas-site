@@ -3645,8 +3645,8 @@ a.skill-card:hover {
 /* ── Chat Panel ──────────────────────────────────────────── */
 
 .adm-chat {
-  width: 440px;
-  height: 560px;
+  width: 660px;
+  height: 840px;
   display: flex;
   flex-direction: column;
   background: #ffffff;
@@ -3770,6 +3770,9 @@ a.skill-card:hover {
   flex-direction: column;
   gap: 8px;
   min-height: 0;
+  contain: layout style;
+  will-change: scroll-position;
+  overscroll-behavior: contain;
 }
 
 /* Custom scrollbar */

@@ -2,6 +2,7 @@ import { getServerSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import AdminThemeProvider from '@/components/admin/AdminThemeProvider'
+import AdminChatWidget from '@/components/admin/AdminChatWidget'
 
 export default async function AdminDashboardLayout({
   children,
@@ -23,6 +24,7 @@ export default async function AdminDashboardLayout({
       >
         <div style={{ padding: '36px' }}>{children}</div>
       </main>
+      <AdminChatWidget />
     </AdminThemeProvider>
   )
 }
