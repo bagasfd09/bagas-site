@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -19,6 +19,29 @@ interface AnalyticsData {
   daily: DailyData[]
 }
 
+type TabId = 'overview' | 'realtime' | 'google'
+
+interface RealtimeView {
+  path: string
+  country: string
+  countryCode: string
+  referrer: string | null
+  createdAt: string
+}
+
+interface RealtimeData {
+  activeNow: number
+  viewsLast30: number
+  recentViews: RealtimeView[]
+  countries: { country: string; code: string; views: number }[]
+}
+
+interface SeoData {
+  configured: boolean
+  summary?: { totalClicks: number; totalImpressions: number; avgCtr: number; avgPosition: number }
+  queries?: { query: string; clicks: number; impressions: number; ctr: number; position: number }[]
+}
+
 /* ── Helpers ───────────────────────────────────────────────── */
 
 function fmt(n: number): string {
@@ -32,6 +55,18 @@ function pct(today: number, yesterday: number) {
   if (yesterday === 0) return { text: '+100%', cls: 'up' }
   const p = Math.round(((today - yesterday) / yesterday) * 100)
   return { text: `${p >= 0 ? '+' : ''}${p}%`, cls: p > 0 ? 'up' : p < 0 ? 'down' : '' }
+}
+
+function flag(code: string): string {
+  if (!code || code === 'XX') return '\u{1F310}'
+  return String.fromCodePoint(...code.toUpperCase().split('').map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
+}
+
+function timeAgo(iso: string): string {
+  const diff = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
+  if (diff < 60) return `${diff}s ago`
+  const m = Math.floor(diff / 60)
+  return `${m}m ago`
 }
 
 /* ── Wave Chart SVG ────────────────────────────────────────── */
@@ -215,6 +250,195 @@ function StaticWaveChart() {
   )
 }
 
+/* ── Real-time Tab Content ─────────────────────────────────── */
+
+function RealtimeContent() {
+  const [data, setData] = useState<RealtimeData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const fetchData = useCallback(() => {
+    fetch('/api/admin/analytics/realtime')
+      .then((r) => r.json())
+      .then((d: RealtimeData) => {
+        if (typeof d.activeNow === 'number') setData(d)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+    const interval = setInterval(fetchData, 30000)
+    return () => clearInterval(interval)
+  }, [fetchData])
+
+  if (loading) {
+    return (
+      <div className="adm-traf-loading">
+        <div className="adm-traf-loading-bar" />
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="adm-traf-tab-content adm-traf-rt-empty">
+        <p style={{ color: '#9a917f', fontSize: '0.8125rem' }}>Unable to load real-time data</p>
+      </div>
+    )
+  }
+
+  const maxCountryViews = data.countries.length > 0 ? data.countries[0].views : 1
+
+  return (
+    <div className="adm-traf-tab-content">
+      {/* KPI row */}
+      <div className="adm-traf-rt-kpis">
+        <div className="adm-traf-rt-kpi">
+          <span className="adm-traf-rt-dot" />
+          <span className="adm-traf-rt-kpi-val">{data.activeNow}</span>
+          <span className="adm-traf-rt-kpi-label">active now</span>
+        </div>
+        <div className="adm-traf-rt-kpi">
+          <span className="adm-traf-rt-kpi-val">{data.viewsLast30}</span>
+          <span className="adm-traf-rt-kpi-label">views (30m)</span>
+        </div>
+      </div>
+
+      {/* Activity feed */}
+      {data.recentViews.length > 0 ? (
+        <div className="adm-traf-rt-feed">
+          {data.recentViews.map((v, i) => (
+            <div key={`${v.createdAt}-${i}`} className="adm-traf-rt-row" style={{ animationDelay: `${i * 30}ms` }}>
+              <span className="adm-traf-rt-time">{timeAgo(v.createdAt)}</span>
+              <span className="adm-traf-rt-flag">{flag(v.countryCode)}</span>
+              <span className="adm-traf-rt-path">{v.path}</span>
+              {v.referrer && <span className="adm-traf-rt-ref">{v.referrer.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}</span>}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="adm-traf-rt-empty-feed">
+          <p>No recent visitors</p>
+        </div>
+      )}
+
+      {/* Country mini-bars */}
+      {data.countries.length > 0 && (
+        <div className="adm-traf-rt-countries">
+          {data.countries.map((c) => (
+            <div key={c.code} className="adm-traf-rt-country">
+              <span className="adm-traf-rt-country-name">{flag(c.code)} {c.country}</span>
+              <div className="adm-traf-rt-country-bar-wrap">
+                <div className="adm-traf-rt-country-bar" style={{ width: `${(c.views / maxCountryViews) * 100}%` }} />
+              </div>
+              <span className="adm-traf-rt-country-count">{c.views}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Google Analytics Tab Content ──────────────────────────── */
+
+function GoogleAnalyticsContent() {
+  const [data, setData] = useState<SeoData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const fetched = useRef(false)
+
+  useEffect(() => {
+    if (fetched.current) return
+    fetched.current = true
+    fetch('/api/admin/analytics/seo?days=28')
+      .then((r) => r.json())
+      .then((d: SeoData) => {
+        setData(d)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="adm-traf-loading">
+        <div className="adm-traf-loading-bar" />
+      </div>
+    )
+  }
+
+  if (!data || !data.configured) {
+    return (
+      <div className="adm-traf-tab-content adm-traf-seo-empty">
+        <div className="adm-traf-seo-empty-icon">
+          <svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2"><path d="M2 12l4-5 3 3 5-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </div>
+        <p className="adm-traf-seo-empty-title">Search Console not connected</p>
+        <p className="adm-traf-seo-empty-desc">Configure Google Search Console credentials to see search analytics data.</p>
+        <a href="/admin/analytics" className="adm-traf-seo-empty-link">Go to Analytics Settings</a>
+      </div>
+    )
+  }
+
+  const s = data.summary!
+  const queries = (data.queries || []).slice(0, 5)
+
+  return (
+    <div className="adm-traf-tab-content">
+      {/* KPI row */}
+      <div className="adm-traf-seo-kpis">
+        <div className="adm-traf-seo-kpi">
+          <span className="adm-traf-seo-kpi-val">{fmt(s.totalClicks)}</span>
+          <span className="adm-traf-seo-kpi-label">Clicks</span>
+        </div>
+        <div className="adm-traf-seo-kpi">
+          <span className="adm-traf-seo-kpi-val">{fmt(s.totalImpressions)}</span>
+          <span className="adm-traf-seo-kpi-label">Impressions</span>
+        </div>
+        <div className="adm-traf-seo-kpi">
+          <span className="adm-traf-seo-kpi-val">{s.avgCtr}%</span>
+          <span className="adm-traf-seo-kpi-label">CTR</span>
+        </div>
+        <div className="adm-traf-seo-kpi">
+          <span className="adm-traf-seo-kpi-val">{s.avgPosition}</span>
+          <span className="adm-traf-seo-kpi-label">Avg Position</span>
+        </div>
+      </div>
+      <p className="adm-traf-seo-delay">Data delayed ~2 days</p>
+
+      {/* Top Queries table */}
+      {queries.length > 0 && (
+        <div className="adm-traf-seo-table-wrap">
+          <table className="adm-traf-seo-table">
+            <thead>
+              <tr className="adm-traf-seo-tr">
+                <th className="adm-traf-seo-th">Query</th>
+                <th className="adm-traf-seo-th adm-traf-seo-th--num">Clicks</th>
+                <th className="adm-traf-seo-th adm-traf-seo-th--num">Position</th>
+              </tr>
+            </thead>
+            <tbody>
+              {queries.map((q) => (
+                <tr key={q.query} className="adm-traf-seo-tr">
+                  <td className="adm-traf-seo-td">{q.query}</td>
+                  <td className="adm-traf-seo-td adm-traf-seo-td--num">{q.clicks}</td>
+                  <td className="adm-traf-seo-td adm-traf-seo-td--num">{q.position}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Footer link */}
+      <div className="adm-traf-seo-footer">
+        <a href="/admin/analytics" className="adm-traf-seo-footer-link">View full analytics &rarr;</a>
+      </div>
+    </div>
+  )
+}
+
 /* ── Stats Row (client, fetches analytics) ─────────────────── */
 
 function DashboardStats({ publishedPosts }: { publishedPosts: number }) {
@@ -301,11 +525,30 @@ const RANGE_OPTIONS = [
   { label: 'Last 90 days', days: 90 },
 ]
 
+const TABS: { id: TabId; label: string; icon: JSX.Element }[] = [
+  {
+    id: 'overview',
+    label: 'Overview',
+    icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="6" height="6" rx="1" strokeLinecap="round" /><rect x="9" y="1" width="6" height="6" rx="1" strokeLinecap="round" /><rect x="1" y="9" width="6" height="6" rx="1" strokeLinecap="round" /><rect x="9" y="9" width="6" height="6" rx="1" strokeLinecap="round" /></svg>,
+  },
+  {
+    id: 'realtime',
+    label: 'Real-time',
+    icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="3" /><circle cx="8" cy="8" r="6.5" strokeDasharray="2 2" /></svg>,
+  },
+  {
+    id: 'google',
+    label: 'Google Analytics',
+    icon: <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 12l4-5 3 3 5-7" strokeLinecap="round" strokeLinejoin="round" /></svg>,
+  },
+]
+
 export default function DashboardTraffic() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [days, setDays] = useState(30)
   const [open, setOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<TabId>('overview')
   const dropRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -338,75 +581,82 @@ export default function DashboardTraffic() {
           <h2 className="adm-traf-title">Traffic</h2>
           <p className="adm-traf-sub">Site analytics overview</p>
         </div>
-        <div className="adm-traf-range-wrap" ref={dropRef}>
-          <button className="adm-traf-range" onClick={() => setOpen(!open)}>
-            {currentLabel}
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          {open && (
-            <div className="adm-traf-dropdown">
-              {RANGE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.days}
-                  className={`adm-traf-dropdown-item${opt.days === days ? ' adm-traf-dropdown-item--active' : ''}`}
-                  onClick={() => { setDays(opt.days); setOpen(false) }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {activeTab === 'overview' && (
+          <div className="adm-traf-range-wrap" ref={dropRef}>
+            <button className="adm-traf-range" onClick={() => setOpen(!open)}>
+              {currentLabel}
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {open && (
+              <div className="adm-traf-dropdown">
+                {RANGE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.days}
+                    className={`adm-traf-dropdown-item${opt.days === days ? ' adm-traf-dropdown-item--active' : ''}`}
+                    onClick={() => { setDays(opt.days); setOpen(false) }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
       <div className="adm-traf-tabs">
-        <button className="adm-traf-tab adm-traf-tab--active">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="6" height="6" rx="1" strokeLinecap="round" /><rect x="9" y="1" width="6" height="6" rx="1" strokeLinecap="round" /><rect x="1" y="9" width="6" height="6" rx="1" strokeLinecap="round" /><rect x="9" y="9" width="6" height="6" rx="1" strokeLinecap="round" /></svg>
-          Overview
-        </button>
-        <button className="adm-traf-tab">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="3" /><circle cx="8" cy="8" r="6.5" strokeDasharray="2 2" /></svg>
-          Real-time
-        </button>
-        <button className="adm-traf-tab">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 12l4-5 3 3 5-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          Google Analytics
-        </button>
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            className={`adm-traf-tab${activeTab === tab.id ? ' adm-traf-tab--active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Chart area */}
-      {loading ? (
-        <div className="adm-traf-loading">
-          <div className="adm-traf-loading-bar" />
-        </div>
-      ) : data && data.daily.length > 0 ? (
-        <WaveChart data={data.daily} />
-      ) : (
-        <StaticWaveChart />
+      {/* Tab content */}
+      {activeTab === 'overview' && (
+        <>
+          {loading ? (
+            <div className="adm-traf-loading">
+              <div className="adm-traf-loading-bar" />
+            </div>
+          ) : data && data.daily.length > 0 ? (
+            <WaveChart data={data.daily} />
+          ) : (
+            <StaticWaveChart />
+          )}
+
+          {/* Legend row */}
+          <div className="adm-traf-legend">
+            <div className="adm-traf-leg-items">
+              <span className="adm-traf-leg">
+                <span className="adm-traf-leg-line" style={{ background: '#b4762c' }} />
+                Page Views
+              </span>
+              <span className="adm-traf-leg">
+                <span className="adm-traf-leg-line adm-traf-leg-line--dashed" style={{ background: '#d4a24c' }} />
+                Unique Visitors
+              </span>
+            </div>
+            <div className="adm-traf-bounce">
+              <span className="adm-traf-bounce-val">
+                {data ? `${Math.round((1 - (data.summary.uniqueVisitors / Math.max(data.summary.totalViews, 1))) * 100)}%` : '57%'}
+              </span>
+              <span className="adm-traf-bounce-label">Avg. Bounce Rate</span>
+            </div>
+          </div>
+        </>
       )}
 
-      {/* Legend row */}
-      <div className="adm-traf-legend">
-        <div className="adm-traf-leg-items">
-          <span className="adm-traf-leg">
-            <span className="adm-traf-leg-line" style={{ background: '#b4762c' }} />
-            Page Views
-          </span>
-          <span className="adm-traf-leg">
-            <span className="adm-traf-leg-line adm-traf-leg-line--dashed" style={{ background: '#d4a24c' }} />
-            Unique Visitors
-          </span>
-        </div>
-        <div className="adm-traf-bounce">
-          <span className="adm-traf-bounce-val">
-            {data ? `${Math.round((1 - (data.summary.uniqueVisitors / Math.max(data.summary.totalViews, 1))) * 100)}%` : '57%'}
-          </span>
-          <span className="adm-traf-bounce-label">Avg. Bounce Rate</span>
-        </div>
-      </div>
+      {activeTab === 'realtime' && <RealtimeContent />}
+      {activeTab === 'google' && <GoogleAnalyticsContent />}
     </div>
   )
 }
