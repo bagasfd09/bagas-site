@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 import { ByteSprite, NekoSprite, SpaceBackground, GardenBackground } from '@/components/admin/MascotSprites'
 
 /* ── Claw'd Pixel Mascot ─────────────────────────────────────
@@ -636,102 +639,17 @@ interface ChatMessage {
   text: string
 }
 
-// Simple markdown parser for chat bubbles
+// Markdown renderer for chat bubbles
 function ChatMarkdown({ text }: { text: string }) {
   if (!text) return null
-
-  const lines = text.split('\n')
-  const elements: JSX.Element[] = []
-  let listItems: string[] = []
-  let listType: 'ul' | 'ol' | null = null
-
-  const flushList = () => {
-    if (listItems.length > 0 && listType) {
-      const Tag = listType
-      elements.push(
-        <Tag key={`list-${elements.length}`}>
-          {listItems.map((item, i) => <li key={i}>{parseInline(item)}</li>)}
-        </Tag>
-      )
-      listItems = []
-      listType = null
-    }
-  }
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-
-    // Unordered list
-    if (/^[-*]\s+/.test(line)) {
-      if (listType !== 'ul') flushList()
-      listType = 'ul'
-      listItems.push(line.replace(/^[-*]\s+/, ''))
-      continue
-    }
-
-    // Ordered list
-    if (/^\d+\.\s+/.test(line)) {
-      if (listType !== 'ol') flushList()
-      listType = 'ol'
-      listItems.push(line.replace(/^\d+\.\s+/, ''))
-      continue
-    }
-
-    flushList()
-
-    // Code block (```)
-    if (line.startsWith('```')) {
-      const codeLines: string[] = []
-      i++
-      while (i < lines.length && !lines[i].startsWith('```')) {
-        codeLines.push(lines[i])
-        i++
-      }
-      elements.push(<pre key={`code-${elements.length}`}><code>{codeLines.join('\n')}</code></pre>)
-      continue
-    }
-
-    // Empty line
-    if (!line.trim()) continue
-
-    // Regular paragraph
-    elements.push(<p key={`p-${elements.length}`}>{parseInline(line)}</p>)
-  }
-
-  flushList()
-  return <>{elements}</>
-}
-
-// Parse inline markdown: **bold**, `code`, *italic*
-function parseInline(text: string): (string | JSX.Element)[] {
-  const parts: (string | JSX.Element)[] = []
-  let remaining = text
-  let keyIdx = 0
-
-  while (remaining.length > 0) {
-    // Code: `...`
-    const codeMatch = remaining.match(/^(.*?)`([^`]+)`(.*)$/)
-    if (codeMatch) {
-      if (codeMatch[1]) parts.push(...parseInline(codeMatch[1]))
-      parts.push(<code key={`c${keyIdx++}`}>{codeMatch[2]}</code>)
-      remaining = codeMatch[3]
-      continue
-    }
-
-    // Bold: **...**
-    const boldMatch = remaining.match(/^(.*?)\*\*([^*]+)\*\*(.*)$/)
-    if (boldMatch) {
-      if (boldMatch[1]) parts.push(boldMatch[1])
-      parts.push(<strong key={`b${keyIdx++}`}>{boldMatch[2]}</strong>)
-      remaining = boldMatch[3]
-      continue
-    }
-
-    parts.push(remaining)
-    break
-  }
-
-  return parts
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeHighlight]}
+    >
+      {text}
+    </ReactMarkdown>
+  )
 }
 
 export default function DashboardMascot() {
