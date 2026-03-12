@@ -5100,6 +5100,398 @@ a.skill-card:hover {
   min-width: 140px;
 }
 
+/* ── Posts Mascot AI Section ──────────────────────────────── */
+.posts-mascot-section {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 20px;
+  animation: adm-slide-up 0.35s ease both;
+}
+
+.posts-mascot-visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 220px;
+  padding: 32px 16px;
+  background: var(--admin-surface);
+  border-radius: 12px;
+  border: 1px solid var(--admin-accent);
+  flex-shrink: 0;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.posts-mascot-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  border-radius: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.posts-mascot-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+.posts-mascot-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--admin-text-primary);
+}
+
+.posts-mascot-role {
+  font-size: 0.6875rem;
+  color: var(--admin-text-muted);
+}
+
+.posts-mascot-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--admin-success);
+  position: relative;
+  z-index: 1;
+}
+
+.posts-mascot-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--admin-success);
+}
+
+.posts-mascot-response {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 24px 26px;
+  background: var(--admin-surface);
+  border-radius: 12px;
+  border: 1px solid var(--admin-accent);
+  gap: 18px;
+}
+
+.posts-mascot-response-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.posts-mascot-response-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.posts-mascot-post-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--admin-text-primary);
+}
+
+.posts-mascot-featured-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--admin-accent);
+  background: var(--admin-accent-soft);
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+.posts-mascot-hint {
+  font-size: 0.6875rem;
+  color: var(--admin-text-muted);
+  flex-shrink: 0;
+}
+
+.posts-mascot-stats {
+  display: flex;
+  gap: 12px;
+}
+
+.posts-mascot-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 16px;
+  background: #fdf6e3;
+  border-radius: 8px;
+  flex: 1;
+}
+[data-theme="dark"] .posts-mascot-stat {
+  background: var(--admin-surface-hover);
+}
+
+.posts-mascot-stat-label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--admin-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.posts-mascot-stat-value {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.posts-mascot-stat-number {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--admin-text-primary);
+}
+
+.posts-mascot-stat-trend {
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.posts-mascot-stat-trend--up {
+  color: var(--admin-success);
+}
+
+.posts-mascot-stat-trend--warn {
+  color: #c4953a;
+}
+
+.posts-mascot-insight {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.posts-mascot-insight-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.posts-mascot-insight-text {
+  font-size: 0.8125rem;
+  color: var(--admin-text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+.posts-mascot-cursor {
+  display: inline-block;
+  animation: mascot-blink 0.6s steps(2) infinite;
+  color: var(--admin-accent);
+  margin-left: 1px;
+  font-size: 0.75rem;
+}
+@keyframes mascot-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── Posts Filters Bar ──────────────────────────────────────── */
+.posts-filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.posts-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  flex: 1;
+  color: var(--admin-text-muted);
+}
+
+.posts-search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.8125rem;
+  color: var(--admin-text-primary);
+  width: 100%;
+  font-family: inherit;
+}
+
+.posts-search-input::placeholder {
+  color: var(--admin-text-muted);
+}
+
+.posts-filters-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--admin-border);
+  flex-shrink: 0;
+}
+
+.posts-status-filters {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.posts-status-pill {
+  display: flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.posts-status-pill:hover {
+  background: var(--admin-surface-hover);
+}
+
+.posts-status-pill--active {
+  background: var(--admin-accent);
+  border-color: var(--admin-accent);
+  color: #fff;
+  font-weight: 500;
+}
+
+.posts-status-pill--active:hover {
+  background: var(--admin-accent-hover);
+}
+
+.posts-sort-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-text-secondary);
+  flex-shrink: 0;
+}
+
+.posts-sort-select {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.75rem;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ── Hovered Row State ──────────────────────────────────────── */
+.adm-tr--hovered {
+  background: var(--admin-accent-soft) !important;
+  border-left: 3px solid var(--admin-accent);
+}
+
+/* ── Posts Pagination ──────────────────────────────────────── */
+.posts-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--admin-border);
+}
+
+.posts-pagination-info {
+  font-size: 0.75rem;
+  color: var(--admin-text-muted);
+}
+
+.posts-pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.posts-page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.posts-page-btn:hover:not(:disabled) {
+  background: var(--admin-surface-hover);
+}
+
+.posts-page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.posts-page-btn--active {
+  background: var(--admin-accent);
+  border-color: var(--admin-accent);
+  color: #fff;
+  font-weight: 500;
+}
+
+.posts-page-btn--active:hover {
+  background: var(--admin-accent-hover);
+}
+
+@media (max-width: 768px) {
+  .posts-mascot-section {
+    flex-direction: column;
+  }
+  .posts-mascot-visual {
+    width: 100%;
+    flex-direction: row;
+    padding: 16px 20px;
+  }
+  .posts-mascot-avatar {
+    width: 60px;
+    height: 60px;
+  }
+  .posts-mascot-stats {
+    flex-direction: column;
+  }
+  .posts-filters-bar {
+    flex-wrap: wrap;
+  }
+  .posts-status-filters {
+    flex-wrap: wrap;
+  }
+}
+
 /* ── Batch Skill Add ──────────────────────────────────────── */
 .batch-panel {
   background: var(--admin-surface);
@@ -5478,6 +5870,32 @@ a.skill-card:hover {
   background: rgba(218, 54, 51, 0.1);
   color: var(--admin-danger);
   border-color: rgba(218, 54, 51, 0.3);
+}
+
+.adm-action-analyze {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--admin-text-muted);
+  transition: all 0.15s ease;
+}
+.adm-action-analyze:hover {
+  background: rgba(180, 118, 44, 0.1);
+  color: var(--admin-accent);
+  border-color: rgba(180, 118, 44, 0.3);
+}
+.adm-action-analyze--active {
+  background: rgba(180, 118, 44, 0.15);
+  color: var(--admin-accent);
+  border-color: rgba(180, 118, 44, 0.4);
 }
 
 /* Project thumbnail */
