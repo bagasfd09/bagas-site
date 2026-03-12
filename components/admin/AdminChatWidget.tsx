@@ -54,7 +54,9 @@ export default function AdminChatWidget() {
     return [{ id: 0, role: 'clawd', text: "Hey! I'm Claw'd 🦀 What's up?" }]
   })
   const [isTyping, setIsTyping] = useState(false)
+  const [showScrollBtn, setShowScrollBtn] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const messagesRef = useRef<HTMLDivElement>(null)
   const msgIdRef = useRef((() => {
     if (typeof window === 'undefined') return 1
     try {
@@ -82,10 +84,26 @@ export default function AdminChatWidget() {
     localStorage.setItem('mascot-chat-history', JSON.stringify(messages))
   }, [messages])
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom (only if user is near bottom)
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = messagesRef.current
+    if (!el) return
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100
+    if (isNearBottom) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [messages, isTyping])
+
+  const handleScroll = useCallback(() => {
+    const el = messagesRef.current
+    if (!el) return
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100
+    setShowScrollBtn(!isNearBottom)
+  }, [])
+
+  const scrollToBottom = useCallback(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
 
   const clearChat = useCallback(() => {
     const greeting: ChatMessage = { id: 0, role: 'clawd', text: `Hey! I'm ${displayName} 🦀 What's up?` }
@@ -217,21 +235,30 @@ export default function AdminChatWidget() {
             </div>
           </div>
 
-          <div className="adm-chat-messages">
-            {messages.map((msg) => (
-              <ChatMsg key={msg.id} msg={msg} />
-            ))}
-            {isTyping && (
-              <div className="adm-chat-msg adm-chat-msg--clawd">
-                <span className="adm-chat-msg-avatar"><MiniClawd size={18} /></span>
-                <div className="adm-chat-bubble adm-chat-bubble--clawd adm-chat-typing">
-                  <span className="adm-chat-dot" />
-                  <span className="adm-chat-dot" />
-                  <span className="adm-chat-dot" />
+          <div className="adm-chat-messages-wrap">
+            <div className="adm-chat-messages" ref={messagesRef} onScroll={handleScroll}>
+              {messages.map((msg) => (
+                <ChatMsg key={msg.id} msg={msg} />
+              ))}
+              {isTyping && (
+                <div className="adm-chat-msg adm-chat-msg--clawd">
+                  <span className="adm-chat-msg-avatar"><MiniClawd size={18} /></span>
+                  <div className="adm-chat-bubble adm-chat-bubble--clawd adm-chat-typing">
+                    <span className="adm-chat-dot" />
+                    <span className="adm-chat-dot" />
+                    <span className="adm-chat-dot" />
+                  </div>
                 </div>
-              </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            {showScrollBtn && (
+              <button className="adm-chat-scroll-btn" onClick={scrollToBottom} title="Scroll to bottom">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             )}
-            <div ref={chatEndRef} />
           </div>
 
           <form

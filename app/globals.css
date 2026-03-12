@@ -3773,6 +3773,7 @@ a.skill-card:hover {
   contain: layout style;
   will-change: scroll-position;
   overscroll-behavior: contain;
+  scroll-behavior: smooth;
 }
 
 /* Custom scrollbar */
@@ -3797,6 +3798,51 @@ a.skill-card:hover {
 [data-theme="dark"] .adm-chat-messages::-webkit-scrollbar-thumb:hover,
 .admin-layout:not([data-theme="light"]) .adm-chat-messages::-webkit-scrollbar-thumb:hover {
   background: #d4a24c;
+}
+
+.adm-chat-messages-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.adm-chat-scroll-btn {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #d4c9b8;
+  background: rgba(255, 255, 255, 0.95);
+  color: #3b3225;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  z-index: 5;
+  transition: opacity 0.2s, background 0.2s;
+  animation: adm-chat-scroll-in 0.2s ease-out;
+}
+.adm-chat-scroll-btn:hover {
+  background: #f0e8d8;
+}
+[data-theme="dark"] .adm-chat-scroll-btn,
+.admin-layout:not([data-theme="light"]) .adm-chat-scroll-btn {
+  background: rgba(40, 40, 40, 0.95);
+  border-color: rgba(255,255,255,0.15);
+  color: #e0d6c8;
+}
+[data-theme="dark"] .adm-chat-scroll-btn:hover,
+.admin-layout:not([data-theme="light"]) .adm-chat-scroll-btn:hover {
+  background: rgba(60, 60, 60, 0.95);
+}
+@keyframes adm-chat-scroll-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 .adm-chat-msg {
