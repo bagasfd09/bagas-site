@@ -24,10 +24,17 @@ export async function GET(request: NextRequest) {
     if (status === 'published') where.published = true
     if (status === 'draft') where.published = false
 
+    const sort = searchParams.get('sort') || 'newest'
+    const orderBy = sort === 'oldest'
+      ? { createdAt: 'asc' as const }
+      : sort === 'title'
+        ? { title: 'asc' as const }
+        : { createdAt: 'desc' as const }
+
     const [posts, total] = await Promise.all([
       prisma.post.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         skip: (page - 1) * limit,
         take: limit,
       }),

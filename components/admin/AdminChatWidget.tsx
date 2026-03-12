@@ -84,6 +84,15 @@ export default function AdminChatWidget() {
     localStorage.setItem('mascot-chat-history', JSON.stringify(messages))
   }, [messages])
 
+  // Scroll to bottom when chat is opened
+  useEffect(() => {
+    if (chatOpen) {
+      requestAnimationFrame(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'instant' })
+      })
+    }
+  }, [chatOpen])
+
   // Auto-scroll to bottom (only if user is near bottom)
   useEffect(() => {
     const el = messagesRef.current
