@@ -4,10 +4,11 @@ export function PersonJsonLd() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Person',
-    name: 'Bagas',
+    name: 'Muhammad Bagas Fadillah',
+    alternateName: 'Bagas',
     url: siteUrl,
     jobTitle: 'Software Engineer',
-    description: 'Software engineer and backend developer from Indonesia specializing in Go, TypeScript, and modern web development.',
+    description: 'Muhammad Bagas Fadillah is a software engineer and backend developer from Indonesia specializing in Go, TypeScript, and modern web development.',
     knowsAbout: [
       'Software Engineering',
       'Backend Development',
@@ -48,10 +49,10 @@ export function WebsiteJsonLd() {
     '@type': 'WebSite',
     name: 'bagas.dev',
     url: siteUrl,
-    description: 'Personal website and blog of Bagas — software engineer and backend developer from Indonesia.',
+    description: 'Personal website and blog of Muhammad Bagas Fadillah — software engineer and backend developer from Indonesia.',
     author: {
       '@type': 'Person',
-      name: 'Bagas',
+      name: 'Muhammad Bagas Fadillah',
     },
   }
 
@@ -90,12 +91,12 @@ export function BlogPostJsonLd({
     dateModified,
     author: {
       '@type': 'Person',
-      name: 'Bagas',
+      name: 'Muhammad Bagas Fadillah',
       url: siteUrl,
     },
     publisher: {
       '@type': 'Person',
-      name: 'Bagas',
+      name: 'Muhammad Bagas Fadillah',
       url: siteUrl,
     },
     keywords: tags.join(', '),

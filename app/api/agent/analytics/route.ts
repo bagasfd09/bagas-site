@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAgentKey, unauthorized, success, error } from '@/lib/agent-auth'
+import { toDateKeyWIB, startOfDayWIB } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,8 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     const now = new Date()
     const days = parseInt(request.nextUrl.searchParams.get('days') || '30', 10)
-    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
-    startDate.setHours(0, 0, 0, 0)
+    const startDate = startOfDayWIB(new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000))
 
     const views = await prisma.pageView.findMany({
       where: {
@@ -32,11 +32,11 @@ export async function GET(request: NextRequest) {
     const dailyMap = new Map<string, { views: number; visitors: Set<string> }>()
     for (let d = 0; d < days; d++) {
       const date = new Date(now.getTime() - d * 24 * 60 * 60 * 1000)
-      const key = date.toISOString().slice(0, 10)
+      const key = toDateKeyWIB(date)
       dailyMap.set(key, { views: 0, visitors: new Set() })
     }
     for (const v of views) {
-      const key = v.createdAt.toISOString().slice(0, 10)
+      const key = toDateKeyWIB(v.createdAt)
       const entry = dailyMap.get(key)
       if (entry) { entry.views++; entry.visitors.add(v.ipHash) }
     }
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     // Summary
     const allVisitors = new Set(views.map((v) => v.ipHash))
-    const todayKey = now.toISOString().slice(0, 10)
+    const todayKey = toDateKeyWIB(now)
     const todayData = dailyMap.get(todayKey)
 
     return success({

@@ -14,8 +14,8 @@ import type { Metadata } from 'next'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Bagas — Software Engineer & Backend Developer from Indonesia',
-  description: 'Personal website of Bagas, a software engineer and backend developer from Indonesia. Specializing in Go, TypeScript, Node.js, and modern web development. Read articles, explore projects, and connect.',
+  title: 'Muhammad Bagas Fadillah — Software Engineer & Backend Developer from Indonesia',
+  description: 'Personal website of Muhammad Bagas Fadillah (Bagas), a software engineer and backend developer from Indonesia. Specializing in Go, TypeScript, Node.js, and modern web development. Read articles, explore projects, and connect.',
   alternates: { canonical: '/' },
 }
 

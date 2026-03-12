@@ -5,12 +5,12 @@ import type { Metadata } from 'next'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'About Me',
-  description: 'Learn about Bagas — a software engineer and backend developer from Indonesia. Skilled in Go, TypeScript, Node.js, React, and PostgreSQL. Building modern web applications and open-source tools.',
+  title: 'About Muhammad Bagas Fadillah',
+  description: 'Learn about Muhammad Bagas Fadillah (Bagas) — a software engineer and backend developer from Indonesia. Skilled in Go, TypeScript, Node.js, React, and PostgreSQL. Building modern web applications and open-source tools.',
   alternates: { canonical: '/me' },
   openGraph: {
-    title: 'About Bagas — Software Engineer from Indonesia',
-    description: 'Software engineer specializing in backend development with Go, TypeScript, and Node.js.',
+    title: 'About Muhammad Bagas Fadillah — Software Engineer from Indonesia',
+    description: 'Muhammad Bagas Fadillah — software engineer specializing in backend development with Go, TypeScript, and Node.js.',
   },
 }
 

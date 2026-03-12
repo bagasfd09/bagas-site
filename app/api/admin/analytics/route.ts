@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyToken } from '@/lib/auth'
+import { toDateKeyWIB, startOfDayWIB } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,8 +14,7 @@ export async function GET(request: NextRequest) {
   try {
     const now = new Date()
     const days = parseInt(request.nextUrl.searchParams.get('days') || '30', 10)
-    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
-    startDate.setHours(0, 0, 0, 0)
+    const startDate = startOfDayWIB(new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000))
 
     // Get all page views in range (exclude CTA tracking paths)
     const views = await prisma.pageView.findMany({
@@ -32,16 +32,16 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // === Daily views ===
+    // === Daily views (WIB) ===
     const dailyMap = new Map<string, { views: number; visitors: Set<string> }>()
     for (let d = 0; d < days; d++) {
       const date = new Date(now.getTime() - d * 24 * 60 * 60 * 1000)
-      const key = date.toISOString().slice(0, 10)
+      const key = toDateKeyWIB(date)
       dailyMap.set(key, { views: 0, visitors: new Set() })
     }
 
     for (const v of views) {
-      const key = v.createdAt.toISOString().slice(0, 10)
+      const key = toDateKeyWIB(v.createdAt)
       const entry = dailyMap.get(key)
       if (entry) {
         entry.views++
@@ -99,13 +99,13 @@ export async function GET(request: NextRequest) {
       select: { path: true, createdAt: true },
     })
 
-    const todayStr = now.toISOString().slice(0, 10)
+    const todayStr = toDateKeyWIB(now)
     const ctaStats = {
       cvDownloads: { total: 0, today: 0 },
       linkedinClicks: { total: 0, today: 0 },
     }
     for (const c of ctaClicks) {
-      const isToday = c.createdAt.toISOString().slice(0, 10) === todayStr
+      const isToday = toDateKeyWIB(c.createdAt) === todayStr
       if (c.path === '__cta/cv-download') {
         ctaStats.cvDownloads.total++
         if (isToday) ctaStats.cvDownloads.today++
@@ -132,9 +132,9 @@ export async function GET(request: NextRequest) {
 
     // === Summary ===
     const allVisitors = new Set(views.map((v: { ipHash: string }) => v.ipHash))
-    const todayKey = now.toISOString().slice(0, 10)
+    const todayKey = toDateKeyWIB(now)
     const todayData = dailyMap.get(todayKey)
-    const yesterdayKey = new Date(now.getTime() - 86400000).toISOString().slice(0, 10)
+    const yesterdayKey = toDateKeyWIB(new Date(now.getTime() - 86400000))
     const yesterdayData = dailyMap.get(yesterdayKey)
 
     return NextResponse.json({

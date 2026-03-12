@@ -46,3 +46,19 @@ export function truncate(text: string, length: number): string {
   if (text.length <= length) return text
   return text.slice(0, length).trim() + '...'
 }
+
+const TZ = 'Asia/Jakarta'
+
+/** Format a Date as YYYY-MM-DD in WIB (Asia/Jakarta) */
+export function toDateKeyWIB(date: Date): string {
+  return date.toLocaleDateString('sv-SE', { timeZone: TZ })
+}
+
+/** Get "start of today" in WIB as a UTC Date */
+export function startOfDayWIB(date: Date): Date {
+  const wibStr = date.toLocaleString('sv-SE', { timeZone: TZ })
+  const dayStr = wibStr.slice(0, 10)
+  // Parse as WIB midnight → convert to UTC
+  const utc = new Date(dayStr + 'T00:00:00+07:00')
+  return utc
+}
