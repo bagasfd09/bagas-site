@@ -131,6 +131,8 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
 
   // "Asking" overlay: shows shimmer on referenced text while AI thinks
   const [askingRange, setAskingRange] = useState<{ start: number; end: number } | null>(null)
+  // Preview selection rect for overlay positioning in preview mode
+  const [previewSelRect, setPreviewSelRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
 
   const abortRef = useRef<AbortController | null>(null)
   const msgEndRef = useRef<HTMLDivElement>(null)
@@ -277,10 +279,23 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     const editorContent = previewRef.current.parentElement
     const parentRect = editorContent ? editorContent.getBoundingClientRect() : previewRect
 
+    const scrollTop = previewRef.current.scrollTop
+    const relTop = rect.top - parentRect.top + scrollTop
+    const relLeft = rect.left - parentRect.left
+
     setTooltipPos({
-      top: rect.top - parentRect.top - 40 + previewRef.current.scrollTop,
-      left: Math.min(rect.left - parentRect.left + rect.width / 2, parentRect.width - 200),
+      top: relTop - 40,
+      left: Math.min(relLeft + rect.width / 2, parentRect.width - 200),
     })
+
+    // Save selection rect for asking overlay in preview mode
+    setPreviewSelRect({
+      top: relTop,
+      left: relLeft,
+      width: rect.width,
+      height: rect.height,
+    })
+
     setShowTooltip(true)
   }, [form.content])
 
@@ -528,6 +543,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     } finally {
       setIsStreaming(false)
       setAskingRange(null)
+      setPreviewSelRect(null)
       inputRef.current?.focus()
     }
   }, [isStreaming, messages, form.title, form.description, form.tags, selectionRange, streamResponse])
@@ -810,8 +826,26 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                     <p className="pe-preview-empty">Nothing to preview yet. Switch to Write and add some content.</p>
                   )}
 
+                  {/* Asking overlay in preview mode */}
+                  {showAskingOverlay && previewSelRect && (
+                    <div
+                      className="pe-rewrite-overlay pe-rewrite-overlay--asking"
+                      style={{
+                        top: previewSelRect.top,
+                        left: previewSelRect.left,
+                        width: previewSelRect.width,
+                        height: previewSelRect.height,
+                      }}
+                    >
+                      <div className="pe-overlay-badge">
+                        <span className="pe-overlay-badge-dot" />
+                        <span>Claw&rsquo;d is thinking...</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Tooltip in preview mode */}
-                  {showTooltip && selectedText && (
+                  {showTooltip && selectedText && !showRewritePrompt && (
                     <div
                       className="pe-tooltip"
                       style={{ top: tooltipPos.top, left: Math.max(0, tooltipPos.left) }}
@@ -839,6 +873,15 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                         </>
                       )}
                     </div>
+                  )}
+
+                  {/* Rewrite prompt in preview mode */}
+                  {showRewritePrompt && selectionRange && (
+                    <RewritePrompt
+                      position={{ top: tooltipPos.top + 36, left: Math.max(0, tooltipPos.left) }}
+                      onSubmit={handleRewriteSubmit}
+                      onCancel={() => setShowRewritePrompt(false)}
+                    />
                   )}
                 </div>
               ) : (
