@@ -9,6 +9,7 @@ import { PixelSprite, OfficeBackground } from '@/components/admin/DashboardMasco
 import { SpaceBackground, GardenBackground } from '@/components/admin/MascotSprites'
 import RewriteOverlay from './RewriteOverlay'
 import RewritePrompt from './RewritePrompt'
+import MarkdownRenderer from '@/components/public/MarkdownRenderer'
 
 interface Post {
   id?: string
@@ -123,6 +124,9 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
   const [showRewritePrompt, setShowRewritePrompt] = useState(false)
   const [undoStack, setUndoStack] = useState<string[]>([])
   const rewriteAbortRef = useRef<AbortController | null>(null)
+
+  // Preview mode
+  const [previewMode, setPreviewMode] = useState(false)
 
   // "Asking" overlay: shows shimmer on referenced text while AI thinks
   const [askingRange, setAskingRange] = useState<{ start: number; end: number } | null>(null)
@@ -684,104 +688,141 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
             {/* Toolbar */}
             <div className="pe-toolbar">
               <div className="pe-toolbar-group">
-                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('**', '**')} title="Bold"><strong>B</strong></button>
-                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('*', '*')} title="Italic"><em>I</em></button>
-                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('~~', '~~')} title="Strikethrough"><s>S</s></button>
-                <div className="pe-toolbar-sep" />
-                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('# ')} title="Heading 1">H1</button>
-                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('## ')} title="Heading 2">H2</button>
-                <div className="pe-toolbar-sep" />
-                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('- ')} title="List">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4h10M4 8h7M4 12h9"/></svg>
+                {!previewMode && (
+                  <>
+                    <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('**', '**')} title="Bold"><strong>B</strong></button>
+                    <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('*', '*')} title="Italic"><em>I</em></button>
+                    <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('~~', '~~')} title="Strikethrough"><s>S</s></button>
+                    <div className="pe-toolbar-sep" />
+                    <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('# ')} title="Heading 1">H1</button>
+                    <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('## ')} title="Heading 2">H2</button>
+                    <div className="pe-toolbar-sep" />
+                    <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('- ')} title="List">
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4h10M4 8h7M4 12h9"/></svg>
+                    </button>
+                    <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('```\n', '\n```')} title="Code block">
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 4L1 8l4 4M11 4l4 4-4 4"/></svg>
+                    </button>
+                  </>
+                )}
+                {rewrite?.active && (
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--admin-accent)', fontWeight: 500, marginLeft: 4 }}>
+                    {rewrite.phase === 'loading' ? 'Preparing rewrite...' : rewrite.phase === 'streaming' ? 'Rewriting...' : 'Done!'}
+                  </span>
+                )}
+              </div>
+
+              {/* Write / Preview tabs */}
+              <div className="pe-tab-group">
+                <button
+                  type="button"
+                  className={`pe-tab-btn${!previewMode ? ' pe-tab-btn--active' : ''}`}
+                  onClick={() => setPreviewMode(false)}
+                >
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2l3 3-9 9H2v-3z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  Write
                 </button>
-                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('```\n', '\n```')} title="Code block">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 4L1 8l4 4M11 4l4 4-4 4"/></svg>
+                <button
+                  type="button"
+                  className={`pe-tab-btn${previewMode ? ' pe-tab-btn--active' : ''}`}
+                  onClick={() => { setPreviewMode(true); setShowTooltip(false); setShowRewritePrompt(false) }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
+                  Preview
                 </button>
               </div>
-              {rewrite?.active && (
-                <span style={{ fontSize: '0.6875rem', color: 'var(--admin-accent)', fontWeight: 500 }}>
-                  {rewrite.phase === 'loading' ? 'Preparing rewrite...' : rewrite.phase === 'streaming' ? 'Rewriting...' : 'Done!'}
-                </span>
-              )}
             </div>
 
-            {/* Editor content area with selection tooltip */}
+            {/* Editor content area */}
             <div className="pe-editor-content">
-              <textarea
-                ref={textareaRef}
-                required
-                value={form.content}
-                onChange={(e) => {
-                  if (!rewrite?.active) {
-                    setForm((f) => ({ ...f, content: e.target.value }))
-                  }
-                }}
-                onMouseUp={handleTextSelect}
-                onKeyUp={handleTextSelect}
-                className={`pe-textarea${rewrite?.active ? ' pe-textarea--rewriting' : ''}`}
-                readOnly={!!rewrite?.active}
-                placeholder="# Title&#10;&#10;Write your content in Markdown..."
-              />
-
-              {/* Rewrite overlay (during direct rewrite) */}
-              {rewrite?.active && (
-                <RewriteOverlay
-                  textareaRef={textareaRef}
-                  editorWrapRef={editorWrapRef}
-                  selectionStart={rewrite.selectionStart}
-                  selectionEnd={rewrite.selectionEnd}
-                  originalContent={rewrite.originalContent}
-                  phase={rewrite.phase}
-                />
-              )}
-
-              {/* Asking overlay (subtle highlight on referenced text while AI thinks) */}
-              {showAskingOverlay && askingRange && (
-                <RewriteOverlay
-                  textareaRef={textareaRef}
-                  editorWrapRef={editorWrapRef}
-                  selectionStart={askingRange.start}
-                  selectionEnd={askingRange.end}
-                  originalContent={form.content}
-                  phase="loading"
-                  mode="asking"
-                />
-              )}
-
-              {/* Selection tooltip */}
-              {showTooltip && !rewrite?.active && (
-                <div
-                  className="pe-tooltip"
-                  style={{ top: tooltipPos.top, left: tooltipPos.left }}
-                  onMouseDown={(e) => e.preventDefault()}
-                >
-                  <button
-                    type="button"
-                    className="pe-tooltip-btn"
-                    onClick={handleAskAboutSelection}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 1a7 7 0 100 14A7 7 0 008 1z"/><path d="M6 8l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    Ask Claw&apos;d
-                  </button>
-                  <div className="pe-tooltip-sep" />
-                  <button
-                    type="button"
-                    className="pe-tooltip-btn"
-                    onClick={handleRewriteClick}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2l3 3-9 9H2v-3z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    Rewrite
-                  </button>
+              {previewMode ? (
+                /* Preview pane */
+                <div className="pe-preview">
+                  {form.content.trim() ? (
+                    <MarkdownRenderer content={form.content} />
+                  ) : (
+                    <p className="pe-preview-empty">Nothing to preview yet. Switch to Write and add some content.</p>
+                  )}
                 </div>
-              )}
+              ) : (
+                <>
+                  <textarea
+                    ref={textareaRef}
+                    required
+                    value={form.content}
+                    onChange={(e) => {
+                      if (!rewrite?.active) {
+                        setForm((f) => ({ ...f, content: e.target.value }))
+                      }
+                    }}
+                    onMouseUp={handleTextSelect}
+                    onKeyUp={handleTextSelect}
+                    className={`pe-textarea${rewrite?.active ? ' pe-textarea--rewriting' : ''}`}
+                    readOnly={!!rewrite?.active}
+                    placeholder="# Title&#10;&#10;Write your content in Markdown..."
+                  />
 
-              {/* Rewrite prompt */}
-              {showRewritePrompt && selectionRange && (
-                <RewritePrompt
-                  position={{ top: tooltipPos.top + 36, left: tooltipPos.left }}
-                  onSubmit={handleRewriteSubmit}
-                  onCancel={() => setShowRewritePrompt(false)}
-                />
+                  {/* Rewrite overlay (during direct rewrite) */}
+                  {rewrite?.active && (
+                    <RewriteOverlay
+                      textareaRef={textareaRef}
+                      editorWrapRef={editorWrapRef}
+                      selectionStart={rewrite.selectionStart}
+                      selectionEnd={rewrite.selectionEnd}
+                      originalContent={rewrite.originalContent}
+                      phase={rewrite.phase}
+                    />
+                  )}
+
+                  {/* Asking overlay (subtle highlight on referenced text while AI thinks) */}
+                  {showAskingOverlay && askingRange && (
+                    <RewriteOverlay
+                      textareaRef={textareaRef}
+                      editorWrapRef={editorWrapRef}
+                      selectionStart={askingRange.start}
+                      selectionEnd={askingRange.end}
+                      originalContent={form.content}
+                      phase="loading"
+                      mode="asking"
+                    />
+                  )}
+
+                  {/* Selection tooltip */}
+                  {showTooltip && !rewrite?.active && (
+                    <div
+                      className="pe-tooltip"
+                      style={{ top: tooltipPos.top, left: tooltipPos.left }}
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      <button
+                        type="button"
+                        className="pe-tooltip-btn"
+                        onClick={handleAskAboutSelection}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 1a7 7 0 100 14A7 7 0 008 1z"/><path d="M6 8l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        Ask Claw&apos;d
+                      </button>
+                      <div className="pe-tooltip-sep" />
+                      <button
+                        type="button"
+                        className="pe-tooltip-btn"
+                        onClick={handleRewriteClick}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2l3 3-9 9H2v-3z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        Rewrite
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Rewrite prompt */}
+                  {showRewritePrompt && selectionRange && (
+                    <RewritePrompt
+                      position={{ top: tooltipPos.top + 36, left: tooltipPos.left }}
+                      onSubmit={handleRewriteSubmit}
+                      onCancel={() => setShowRewritePrompt(false)}
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>
