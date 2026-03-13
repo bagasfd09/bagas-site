@@ -1,9 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { slugify } from '@/lib/utils'
 import Toast from './Toast'
+import { PixelSprite, OfficeBackground } from '@/components/admin/DashboardMascot'
+import { SpaceBackground, GardenBackground } from '@/components/admin/MascotSprites'
+import RewriteOverlay from './RewriteOverlay'
+import RewritePrompt from './RewritePrompt'
 
 interface Post {
   id?: string
@@ -22,6 +27,22 @@ interface Post {
 interface PostFormProps {
   post?: Post
   type?: 'post' | 'note'
+}
+
+interface ChatMsg {
+  role: 'user' | 'assistant'
+  text: string
+  reference?: string
+}
+
+interface RewriteState {
+  active: boolean
+  selectionStart: number
+  selectionEnd: number
+  originalText: string
+  originalContent: string
+  phase: 'loading' | 'streaming' | 'done'
+  streamedSoFar: string
 }
 
 export default function PostForm({ post, type = 'post' }: PostFormProps) {
@@ -45,238 +66,846 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
 
   const [tagsInput, setTagsInput] = useState((post?.tags || []).join(', '))
   const [slugManual, setSlugManual] = useState(!!post?.slug)
+  const [editSlug, setEditSlug] = useState(false)
 
+  // Mascot state
+  const [frame, setFrame] = useState(0)
+  const [background, setBackground] = useState<string>('office')
+  const [messages, setMessages] = useState<ChatMsg[]>([])
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [replyInput, setReplyInput] = useState('')
+  const [streamingText, setStreamingText] = useState('')
 
+  // Text selection
+  const [selectedText, setSelectedText] = useState('')
+  const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null)
+  const [showTooltip, setShowTooltip] = useState(false)
+  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 })
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const editorWrapRef = useRef<HTMLDivElement>(null)
+
+  // Rewrite state
+  const [rewrite, setRewrite] = useState<RewriteState | null>(null)
+  const [showRewritePrompt, setShowRewritePrompt] = useState(false)
+  const [undoStack, setUndoStack] = useState<string[]>([])
+  const rewriteAbortRef = useRef<AbortController | null>(null)
+
+  const abortRef = useRef<AbortController | null>(null)
+  const msgEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Auto slug
   useEffect(() => {
     if (!slugManual && form.title) {
       setForm((f) => ({ ...f, slug: slugify(form.title) }))
     }
   }, [form.title, slugManual])
 
+  // Animate mascot
+  useEffect(() => {
+    const interval = setInterval(() => setFrame(f => f + 1), 300)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Fetch mascot settings
+  useEffect(() => {
+    fetch('/api/admin/mascot')
+      .then(r => r.json())
+      .then(d => { if (d.background) setBackground(d.background) })
+      .catch(() => {})
+  }, [])
+
+  // Auto-scroll messages
+  useEffect(() => {
+    msgEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages.length, streamingText])
+
+  // Ctrl+Z undo handler for rewrite
+  useEffect(() => {
+    const handleUndo = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && undoStack.length > 0 && !rewrite?.active) {
+        e.preventDefault()
+        const prev = undoStack[undoStack.length - 1]
+        setUndoStack(s => s.slice(0, -1))
+        setForm(f => ({ ...f, content: prev }))
+        setToast({ message: 'Rewrite undone', type: 'success' })
+      }
+    }
+    document.addEventListener('keydown', handleUndo)
+    return () => document.removeEventListener('keydown', handleUndo)
+  }, [undoStack, rewrite])
+
   function handleTagsChange(value: string) {
     setTagsInput(value)
-    const tags = value
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean)
+    const tags = value.split(',').map((t) => t.trim()).filter(Boolean)
     setForm((f) => ({ ...f, tags }))
   }
+
+  // Text selection handler
+  const handleTextSelect = useCallback(() => {
+    if (rewrite?.active) return // Don't select during rewrite
+
+    const textarea = textareaRef.current
+    const editorWrap = editorWrapRef.current
+    if (!textarea || !editorWrap) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    if (start === end) {
+      setShowTooltip(false)
+      setSelectedText('')
+      setSelectionRange(null)
+      return
+    }
+
+    const text = textarea.value.substring(start, end).trim()
+    if (text.length < 5) {
+      setShowTooltip(false)
+      setSelectedText('')
+      setSelectionRange(null)
+      return
+    }
+
+    setSelectedText(text)
+    setSelectionRange({ start, end })
+
+    // Position tooltip relative to editor wrapper
+    const textareaRect = textarea.getBoundingClientRect()
+
+    // Estimate line position from selection
+    const textBefore = textarea.value.substring(0, start)
+    const linesBefore = textBefore.split('\n').length
+    const lineHeight = 22
+    const scrollTop = textarea.scrollTop
+
+    const top = (linesBefore * lineHeight) - scrollTop - 40
+    const left = Math.min(textareaRect.width / 2, 200)
+
+    setTooltipPos({ top: Math.max(0, top), left })
+    setShowTooltip(true)
+  }, [rewrite])
+
+  // Hide tooltip on click outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (showTooltip && !(e.target as HTMLElement).closest('.pe-tooltip') && !(e.target as HTMLElement).closest('.pe-rewrite-prompt')) {
+        setShowTooltip(false)
+        setShowRewritePrompt(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showTooltip])
+
+  // Stream response from OpenClaw (refactored with onDelta callback)
+  const streamResponse = useCallback(async (
+    apiMessages: { role: string; content: string }[],
+    signal: AbortSignal,
+    onDelta?: (delta: string, accumulated: string) => void,
+  ) => {
+    const res = await fetch('/api/admin/mascot/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: apiMessages }),
+      signal,
+    })
+
+    if (!res.ok) throw new Error('OpenClaw error')
+    const reader = res.body?.getReader()
+    if (!reader) throw new Error('No stream')
+
+    const decoder = new TextDecoder()
+    let accumulated = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const chunk = decoder.decode(value, { stream: true })
+      for (const line of chunk.split('\n')) {
+        if (!line.startsWith('data: ')) continue
+        const data = line.slice(6).trim()
+        if (data === '[DONE]') continue
+        try {
+          const parsed = JSON.parse(data)
+          const delta = parsed.choices?.[0]?.delta?.content
+          if (delta) {
+            accumulated += delta
+            if (onDelta) {
+              onDelta(delta, accumulated)
+            } else {
+              setStreamingText(accumulated)
+            }
+          }
+        } catch { /* skip */ }
+      }
+    }
+    return accumulated
+  }, [])
+
+  // Stream rewrite: replaces selected text progressively
+  const streamRewrite = useCallback(async (instruction: string, selStart: number, selEnd: number) => {
+    if (rewrite?.active || isStreaming) return
+
+    const originalContent = form.content
+    const originalText = originalContent.substring(selStart, selEnd)
+
+    // Push current content to undo stack
+    setUndoStack(prev => [...prev.slice(-9), originalContent])
+
+    // Set rewrite state
+    setRewrite({
+      active: true,
+      selectionStart: selStart,
+      selectionEnd: selEnd,
+      originalText,
+      originalContent,
+      phase: 'loading',
+      streamedSoFar: '',
+    })
+
+    const controller = new AbortController()
+    rewriteAbortRef.current = controller
+
+    const systemPrompt = [
+      'You are a text rewriting assistant. Return ONLY the rewritten text.',
+      'No explanations, no markdown fences wrapping the output.',
+      'Match the original formatting style (markdown if the original uses it).',
+      'Respond in the same language as the content.',
+      form.title ? `Post title: "${form.title}"` : '',
+    ].filter(Boolean).join('\n')
+
+    const apiMessages = [
+      { role: 'system', content: systemPrompt },
+      {
+        role: 'user',
+        content: `Original text:\n"${originalText}"\n\nInstruction: ${instruction}`,
+      },
+    ]
+
+    try {
+      // Switch to loading phase briefly, then streaming
+      await new Promise(r => setTimeout(r, 100))
+      setRewrite(prev => prev ? { ...prev, phase: 'streaming' } : null)
+
+      const result = await streamResponse(apiMessages, controller.signal, (_delta, accumulated) => {
+        // Progressive replacement
+        const before = originalContent.substring(0, selStart)
+        const after = originalContent.substring(selEnd)
+        setForm(f => ({ ...f, content: before + accumulated + after }))
+        setRewrite(prev => prev ? { ...prev, streamedSoFar: accumulated } : null)
+      })
+
+      if (result) {
+        // Final update
+        const before = originalContent.substring(0, selStart)
+        const after = originalContent.substring(selEnd)
+        setForm(f => ({ ...f, content: before + result + after }))
+        setRewrite(prev => prev ? { ...prev, phase: 'done', streamedSoFar: result } : null)
+
+        // Add to conversation for context
+        setMessages(prev => [...prev,
+          { role: 'user', text: `Rewrite: "${originalText.substring(0, 80)}${originalText.length > 80 ? '...' : ''}" → ${instruction}` },
+          { role: 'assistant', text: `Rewrote the selected text. Result:\n"${result.substring(0, 200)}${result.length > 200 ? '...' : ''}"` },
+        ])
+
+        // Clear rewrite after fade
+        setTimeout(() => setRewrite(null), 600)
+        setToast({ message: 'Text rewritten! Ctrl+Z to undo', type: 'success' })
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        // Restore original content on cancel
+        setForm(f => ({ ...f, content: originalContent }))
+        setUndoStack(prev => prev.slice(0, -1))
+        setToast({ message: 'Rewrite cancelled', type: 'success' })
+      } else {
+        setForm(f => ({ ...f, content: originalContent }))
+        setUndoStack(prev => prev.slice(0, -1))
+        setToast({ message: 'Rewrite failed', type: 'error' })
+      }
+      setRewrite(null)
+    }
+  }, [rewrite, isStreaming, form.content, form.title, streamResponse])
+
+  // Cancel rewrite
+  const cancelRewrite = useCallback(() => {
+    if (rewriteAbortRef.current) {
+      rewriteAbortRef.current.abort()
+      rewriteAbortRef.current = null
+    }
+  }, [])
+
+  // Handle "Rewrite with Claw'd" button
+  const handleRewriteClick = useCallback(() => {
+    if (!selectionRange) return
+    setShowTooltip(false)
+    setShowRewritePrompt(true)
+  }, [selectionRange])
+
+  // Handle rewrite prompt submission
+  const handleRewriteSubmit = useCallback((instruction: string) => {
+    if (!selectionRange) return
+    setShowRewritePrompt(false)
+    streamRewrite(instruction, selectionRange.start, selectionRange.end)
+  }, [selectionRange, streamRewrite])
+
+  // Handle "Apply to Editor" from conversation
+  const handleApplyToEditor = useCallback((text: string) => {
+    if (rewrite?.active) return
+
+    if (selectionRange) {
+      // Apply to last known selection range
+      const before = form.content.substring(0, selectionRange.start)
+      const after = form.content.substring(selectionRange.end)
+      setUndoStack(prev => [...prev.slice(-9), form.content])
+      setForm(f => ({ ...f, content: before + text + after }))
+      setToast({ message: 'Applied to editor! Ctrl+Z to undo', type: 'success' })
+    } else {
+      // No selection: append at cursor or end
+      const textarea = textareaRef.current
+      const pos = textarea ? textarea.selectionStart : form.content.length
+      const before = form.content.substring(0, pos)
+      const after = form.content.substring(pos)
+      const separator = before.endsWith('\n') || before === '' ? '' : '\n\n'
+      setUndoStack(prev => [...prev.slice(-9), form.content])
+      setForm(f => ({ ...f, content: before + separator + text + after }))
+      setToast({ message: 'Text appended to editor! Ctrl+Z to undo', type: 'success' })
+    }
+  }, [rewrite, selectionRange, form.content])
+
+  // Send message to Claw'd
+  const sendMessage = useCallback(async (userText: string, reference?: string) => {
+    if (isStreaming) return
+
+    if (abortRef.current) abortRef.current.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    const userMsg: ChatMsg = { role: 'user', text: userText, reference }
+    setMessages(prev => [...prev, userMsg])
+    setReplyInput('')
+    setIsStreaming(true)
+    setStreamingText('')
+
+    const systemPrompt = [
+      'You are a writing assistant for a blog post editor. Keep responses concise and actionable (2-4 sentences).',
+      'Respond in the same language as the content.',
+      form.title ? `Post title: "${form.title}"` : '',
+      form.description ? `Description: ${form.description}` : '',
+      form.tags.length ? `Tags: ${form.tags.join(', ')}` : '',
+    ].filter(Boolean).join('\n')
+
+    const apiMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages.map(m => ({
+        role: m.role,
+        content: m.reference
+          ? `[Reference from post]:\n"${m.reference}"\n\n${m.text}`
+          : m.text,
+      })),
+      {
+        role: 'user',
+        content: reference
+          ? `[Reference from post]:\n"${reference}"\n\n${userText}`
+          : userText,
+      },
+    ]
+
+    try {
+      const result = await streamResponse(apiMessages, controller.signal)
+      if (result) {
+        setMessages(prev => [...prev, { role: 'assistant', text: result }])
+        setStreamingText('')
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      setMessages(prev => [...prev, { role: 'assistant', text: 'Failed to get response.' }])
+      setStreamingText('')
+    } finally {
+      setIsStreaming(false)
+      inputRef.current?.focus()
+    }
+  }, [isStreaming, messages, form.title, form.description, form.tags, streamResponse])
+
+  // Handle "Ask Claw'd about this"
+  const handleAskAboutSelection = useCallback(() => {
+    if (!selectedText) return
+    setShowTooltip(false)
+
+    // Add a placeholder user message with reference, then focus input
+    const userMsg: ChatMsg = { role: 'user', text: '', reference: selectedText }
+    setMessages(prev => [...prev, userMsg])
+    setSelectedText('')
+
+    // Focus input so user can type their question
+    setTimeout(() => inputRef.current?.focus(), 100)
+  }, [selectedText])
+
+  // Handle reply
+  const handleReply = useCallback(() => {
+    const text = replyInput.trim()
+    if (!text) return
+
+    // Check if last message is a reference-only placeholder (empty text)
+    const lastMsg = messages[messages.length - 1]
+    if (lastMsg?.role === 'user' && lastMsg.text === '' && lastMsg.reference) {
+      // Update the placeholder with the actual text
+      setMessages(prev => {
+        const updated = [...prev]
+        updated[updated.length - 1] = { ...lastMsg, text }
+        return updated
+      })
+      setReplyInput('')
+
+      // Now send to AI with reference context
+      const ref = lastMsg.reference
+      // Remove the placeholder, sendMessage will re-add it
+      setMessages(prev => prev.slice(0, -1))
+      sendMessage(text, ref)
+    } else {
+      sendMessage(text)
+    }
+  }, [replyInput, messages, sendMessage])
+
+  // Quick actions
+  const handleQuickAction = useCallback((action: string) => {
+    const contentSnippet = form.content.substring(0, 500)
+    const prompts: Record<string, string> = {
+      'improve': `Review and suggest improvements for this content:\n"${contentSnippet}..."`,
+      'summarize': `Write a concise summary/excerpt for this blog post based on: "${contentSnippet}..."`,
+      'grammar': `Check for grammar and style issues in this content:\n"${contentSnippet}..."`,
+      'seo': `Generate an SEO-optimized meta description and suggest title improvements for a post titled "${form.title}" about: ${form.description || contentSnippet.substring(0, 200)}`,
+    }
+    sendMessage(prompts[action] || action)
+  }, [form.content, form.title, form.description, sendMessage])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleReply()
+    }
+  }, [handleReply])
+
+  // Toolbar actions
+  const insertMarkdown = useCallback((prefix: string, suffix: string = '') => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const text = form.content
+    const selected = text.substring(start, end)
+    const newText = text.substring(0, start) + prefix + selected + suffix + text.substring(end)
+    setForm(f => ({ ...f, content: newText }))
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + prefix.length, end + prefix.length)
+    }, 0)
+  }, [form.content])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-
     try {
       const url = post?.id
         ? `/api/admin/${isNote ? 'notes' : 'posts'}/${post.id}`
         : `/api/admin/${isNote ? 'notes' : 'posts'}`
       const method = post?.id ? 'PUT' : 'POST'
-
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
-
       if (!res.ok) {
         const err = await res.json()
         throw new Error(err.error || 'Failed to save')
       }
-
       setToast({ message: `${isNote ? 'Note' : 'Post'} saved successfully`, type: 'success' })
       setTimeout(() => {
         router.push(`/admin/${isNote ? 'notes' : 'posts'}`)
         router.refresh()
       }, 800)
     } catch (err) {
-      setToast({
-        message: String(err instanceof Error ? err.message : err),
-        type: 'error',
-      })
+      setToast({ message: String(err instanceof Error ? err.message : err), type: 'error' })
     } finally {
       setLoading(false)
     }
   }
 
+  const mascotState = isStreaming || rewrite?.active ? 'writing' : messages.length > 0 ? 'presenting' : 'idle'
+  const hasReferenceWaiting = messages.length > 0 && messages[messages.length - 1]?.role === 'user' && messages[messages.length - 1]?.text === '' && messages[messages.length - 1]?.reference
+
   return (
-    <>
+    <div className="pe-page">
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Title */}
-        <div>
-          <label className="admin-label">Title *</label>
-          <input
-            type="text"
-            required
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            className="admin-input"
-            placeholder={isNote ? 'Note title' : 'Post title'}
-          />
+      {/* Header */}
+      <div className="pe-header">
+        <div className="pe-breadcrumb">
+          <Link href={`/admin/${isNote ? 'notes' : 'posts'}`} className="pe-breadcrumb-link">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M10 4l-4 4 4 4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Back to {isNote ? 'Notes' : 'Posts'}
+          </Link>
+          <span className="pe-breadcrumb-sep">/</span>
+          <span className="pe-breadcrumb-current">{post?.id ? 'Edit Post' : 'New Post'}</span>
         </div>
-
-        {/* Slug */}
-        <div>
-          <label className="admin-label">Slug *</label>
-          <input
-            type="text"
-            required
-            value={form.slug}
-            onChange={(e) => {
-              setSlugManual(true)
-              setForm((f) => ({ ...f, slug: e.target.value }))
-            }}
-            className="admin-input"
-            placeholder="post-slug-here"
-          />
-          <p className="admin-hint">
-            URL: /{isNote ? 'notes' : 'blog'}/{form.slug}
-          </p>
+        <div className="pe-header-actions">
+          {rewrite?.active && (
+            <button type="button" onClick={cancelRewrite} className="admin-btn admin-btn-secondary" style={{ color: 'var(--admin-error)' }}>
+              Cancel Rewrite
+            </button>
+          )}
+          <button type="button" onClick={() => router.back()} className="admin-btn admin-btn-secondary">
+            Cancel
+          </button>
+          <button onClick={handleSubmit} disabled={loading || !!rewrite?.active} className="admin-btn admin-btn-primary">
+            {loading ? 'Saving...' : post?.id ? 'Save Changes' : 'Create'}
+          </button>
         </div>
+      </div>
 
+      {/* Main layout */}
+      <form onSubmit={handleSubmit} className="pe-layout">
+        {/* Left: Editor */}
+        <div className="pe-editor-area">
+          {/* Title */}
+          <div className="pe-title-field">
+            <input
+              type="text"
+              required
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              className="pe-title-input"
+              placeholder={isNote ? 'Note title' : 'Post title'}
+            />
+            <div className="pe-slug-row">
+              {editSlug ? (
+                <input
+                  type="text"
+                  value={form.slug}
+                  onChange={(e) => { setSlugManual(true); setForm((f) => ({ ...f, slug: e.target.value })) }}
+                  onBlur={() => setEditSlug(false)}
+                  className="pe-slug-input"
+                  autoFocus
+                />
+              ) : (
+                <>
+                  <span className="pe-slug-text">/{isNote ? 'notes' : 'blog'}/{form.slug || '...'}</span>
+                  <button type="button" className="pe-slug-edit" onClick={() => setEditSlug(true)}>Edit slug</button>
+                </>
+              )}
+            </div>
+          </div>
 
-        {/* Description (posts only) */}
-        {!isNote && (
-          <div>
-            <label className="admin-label">Description / Excerpt</label>
+          {/* Description (posts only) */}
+          {!isNote && (
             <input
               type="text"
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              className="admin-input"
+              className="pe-desc-input"
               placeholder="Short description for preview cards..."
             />
-          </div>
-        )}
-
-        {/* Content */}
-        <div>
-          <label className="admin-label">Content (Markdown) *</label>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '12px',
-            }}
-            className="block lg:grid"
-          >
-            <textarea
-              required
-              value={form.content}
-              onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-              className="admin-textarea"
-              style={{
-                height: '480px',
-                fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-                fontSize: '0.8125rem',
-                resize: 'none',
-              }}
-              placeholder={'# Title\n\nWrite your content in Markdown...'}
-            />
-            <div
-              className="admin-card prose hidden lg:block"
-              style={{
-                height: '480px',
-                overflowY: 'auto',
-                padding: '12px 16px',
-                fontSize: '0.875rem',
-              }}
-              dangerouslySetInnerHTML={{
-                __html: form.content
-                  ? form.content.replace(/\n/g, '<br/>')
-                  : '<p style="color:var(--admin-text-muted);font-size:0.8125rem">Preview will appear here...</p>',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Tags */}
-        <div>
-          <label className="admin-label">Tags (comma-separated)</label>
-          <input
-            type="text"
-            value={tagsInput}
-            onChange={(e) => handleTagsChange(e.target.value)}
-            className="admin-input"
-            placeholder="TypeScript, React, Next.js"
-          />
-        </div>
-
-        {/* Category (posts only) */}
-        {!isNote && (
-          <div>
-            <label className="admin-label">Category</label>
-            <select
-              value={form.category}
-              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              className="admin-select"
-            >
-              <option value="technical">Technical</option>
-              <option value="personal">Personal</option>
-            </select>
-          </div>
-        )}
-
-        {/* Toggles */}
-        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              color: 'var(--admin-text-primary)',
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={form.published}
-              onChange={(e) => setForm((f) => ({ ...f, published: e.target.checked }))}
-              className="admin-checkbox"
-              style={{ width: '15px', height: '15px' }}
-            />
-            Published
-          </label>
-
-          {!isNote && (
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                color: 'var(--admin-text-primary)',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={form.featured}
-                onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))}
-                className="admin-checkbox"
-                style={{ width: '15px', height: '15px' }}
-              />
-              Featured
-            </label>
           )}
+
+          {/* Markdown Editor */}
+          <div className="pe-editor-card" ref={editorWrapRef}>
+            {/* Toolbar */}
+            <div className="pe-toolbar">
+              <div className="pe-toolbar-group">
+                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('**', '**')} title="Bold"><strong>B</strong></button>
+                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('*', '*')} title="Italic"><em>I</em></button>
+                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('~~', '~~')} title="Strikethrough"><s>S</s></button>
+                <div className="pe-toolbar-sep" />
+                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('# ')} title="Heading 1">H1</button>
+                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('## ')} title="Heading 2">H2</button>
+                <div className="pe-toolbar-sep" />
+                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('- ')} title="List">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4h10M4 8h7M4 12h9"/></svg>
+                </button>
+                <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('```\n', '\n```')} title="Code block">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 4L1 8l4 4M11 4l4 4-4 4"/></svg>
+                </button>
+              </div>
+              {rewrite?.active && (
+                <span style={{ fontSize: '0.6875rem', color: 'var(--admin-accent)', fontWeight: 500 }}>
+                  {rewrite.phase === 'loading' ? 'Preparing rewrite...' : rewrite.phase === 'streaming' ? 'Rewriting...' : 'Done!'}
+                </span>
+              )}
+            </div>
+
+            {/* Editor content area with selection tooltip */}
+            <div className="pe-editor-content">
+              <textarea
+                ref={textareaRef}
+                required
+                value={form.content}
+                onChange={(e) => {
+                  if (!rewrite?.active) {
+                    setForm((f) => ({ ...f, content: e.target.value }))
+                  }
+                }}
+                onMouseUp={handleTextSelect}
+                onKeyUp={handleTextSelect}
+                className={`pe-textarea${rewrite?.active ? ' pe-textarea--rewriting' : ''}`}
+                readOnly={!!rewrite?.active}
+                placeholder="# Title&#10;&#10;Write your content in Markdown..."
+              />
+
+              {/* Rewrite overlay */}
+              {rewrite?.active && (
+                <RewriteOverlay
+                  textareaRef={textareaRef}
+                  editorWrapRef={editorWrapRef}
+                  selectionStart={rewrite.selectionStart}
+                  selectionEnd={rewrite.selectionEnd}
+                  originalContent={rewrite.originalContent}
+                  phase={rewrite.phase}
+                />
+              )}
+
+              {/* Selection tooltip */}
+              {showTooltip && !rewrite?.active && (
+                <div
+                  className="pe-tooltip"
+                  style={{ top: tooltipPos.top, left: tooltipPos.left }}
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  <button
+                    type="button"
+                    className="pe-tooltip-btn"
+                    onClick={handleAskAboutSelection}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 1a7 7 0 100 14A7 7 0 008 1z"/><path d="M6 8l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Ask Claw&apos;d
+                  </button>
+                  <div className="pe-tooltip-sep" />
+                  <button
+                    type="button"
+                    className="pe-tooltip-btn"
+                    onClick={handleRewriteClick}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2l3 3-9 9H2v-3z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Rewrite
+                  </button>
+                </div>
+              )}
+
+              {/* Rewrite prompt */}
+              {showRewritePrompt && selectionRange && (
+                <RewritePrompt
+                  position={{ top: tooltipPos.top + 36, left: tooltipPos.left }}
+                  onSubmit={handleRewriteSubmit}
+                  onCancel={() => setShowRewritePrompt(false)}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Metadata bar */}
+          <div className="pe-metadata">
+            {/* Tags */}
+            <div className="pe-meta-group">
+              <span className="pe-meta-label">Tags</span>
+              <div className="pe-tags">
+                {form.tags.map((tag, i) => (
+                  <span key={i} className="pe-tag">
+                    {tag}
+                    <button type="button" className="pe-tag-remove" onClick={() => {
+                      const newTags = form.tags.filter((_, j) => j !== i)
+                      setForm(f => ({ ...f, tags: newTags }))
+                      setTagsInput(newTags.join(', '))
+                    }}>&times;</button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  className="pe-tag-input"
+                  placeholder="+ Add tag"
+                  value={tagsInput.includes(',') ? '' : tagsInput}
+                  onChange={(e) => handleTagsChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const val = (e.target as HTMLInputElement).value.trim()
+                      if (val && !form.tags.includes(val)) {
+                        const newTags = [...form.tags, val]
+                        setForm(f => ({ ...f, tags: newTags }))
+                        setTagsInput(newTags.join(', '))
+                      }
+                      ;(e.target as HTMLInputElement).value = ''
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {!isNote && (
+              <>
+                <div className="pe-meta-sep" />
+                <div className="pe-meta-group">
+                  <span className="pe-meta-label">Category</span>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                    className="pe-category-select"
+                  >
+                    <option value="technical">Technical</option>
+                    <option value="personal">Personal</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            <div className="pe-meta-sep" />
+
+            {/* Toggles */}
+            <div className="pe-toggles">
+              <label className="pe-toggle">
+                <input
+                  type="checkbox"
+                  checked={form.published}
+                  onChange={(e) => setForm((f) => ({ ...f, published: e.target.checked }))}
+                />
+                <span className={`pe-toggle-track ${form.published ? 'pe-toggle-track--on' : ''}`}>
+                  <span className="pe-toggle-thumb" />
+                </span>
+                Published
+              </label>
+              {!isNote && (
+                <label className="pe-toggle">
+                  <input
+                    type="checkbox"
+                    checked={form.featured}
+                    onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))}
+                  />
+                  <span className={`pe-toggle-track ${form.featured ? 'pe-toggle-track--on pe-toggle-track--gold' : ''}`}>
+                    <span className="pe-toggle-thumb" />
+                  </span>
+                  Featured
+                </label>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: '10px', paddingTop: '4px' }}>
-          <button type="submit" disabled={loading} className="admin-btn admin-btn-primary">
-            {loading ? 'Saving...' : post?.id ? 'Update' : 'Create'}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="admin-btn admin-btn-secondary"
-          >
-            Cancel
-          </button>
+        {/* Right: AI Assistant */}
+        <div className="pe-assistant">
+          {/* Mascot scene */}
+          <div className="pe-mascot-scene">
+            <div className="adm-office-bg">
+              {background === 'space' ? <SpaceBackground /> : background === 'garden' ? <GardenBackground /> : <OfficeBackground />}
+            </div>
+            <div className="pe-mascot-sprite">
+              <PixelSprite
+                state={mascotState}
+                frame={frame}
+                karatePhase="ready"
+                presentPhase={messages.length > 0 ? 'point-1' : 'walk'}
+                coffeePhase="walk"
+                callingPhase="wave-1"
+              />
+            </div>
+          </div>
+
+          {/* Name + Status */}
+          <div className="pe-mascot-info">
+            <div className="pe-mascot-name-row">
+              <span className="pe-mascot-name">Claw&apos;d</span>
+              <div className="pe-mascot-status">
+                <span className="pe-mascot-dot" />
+                <span>{isStreaming ? 'Thinking...' : rewrite?.active ? 'Rewriting...' : 'Writing Assistant'}</span>
+              </div>
+            </div>
+            <span className="pe-mascot-role">Helps you write better content</span>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="pe-quick-actions">
+            <span className="pe-section-label">Quick Actions</span>
+            <div className="pe-action-chips">
+              <button type="button" className="pe-action-chip" onClick={() => handleQuickAction('improve')}>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+                Improve Writing
+              </button>
+              <button type="button" className="pe-action-chip" onClick={() => handleQuickAction('summarize')}>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4h8M4 8h5M4 12h7"/></svg>
+                Summarize
+              </button>
+              <button type="button" className="pe-action-chip" onClick={() => handleQuickAction('grammar')}>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 12l3-8 3 8M5 10h4"/></svg>
+                Fix Grammar
+              </button>
+              <button type="button" className="pe-action-chip" onClick={() => handleQuickAction('seo')}>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="7" cy="7" r="4"/><path d="M10 10l3 3"/></svg>
+                Generate SEO
+              </button>
+            </div>
+          </div>
+
+          {/* Conversation */}
+          <div className="pe-convo-area">
+            <span className="pe-section-label">Conversation</span>
+            <div className="pe-messages">
+              {messages.length === 0 && !streamingText && (
+                <p className="pe-empty-msg">Select text or use quick actions to start a conversation with Claw&apos;d.</p>
+              )}
+              {messages.map((msg, i) => (
+                <div key={i} className={`pe-msg pe-msg--${msg.role}`}>
+                  {msg.reference && (
+                    <div className="pe-reference-card">
+                      <div className="pe-reference-label">
+                        <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3h4v4H3zM9 3h4v4H9zM3 9h4v4H3z"/></svg>
+                        Selected Reference
+                      </div>
+                      <p className="pe-reference-text">{msg.reference}</p>
+                    </div>
+                  )}
+                  {msg.text && <p className="pe-msg-text">{msg.text}</p>}
+                  {msg.role === 'assistant' && msg.text && !msg.text.startsWith('Failed') && !msg.text.startsWith('Rewrote') && (
+                    <button
+                      type="button"
+                      className="pe-msg-apply-btn"
+                      onClick={() => handleApplyToEditor(msg.text)}
+                      disabled={!!rewrite?.active}
+                    >
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2l3 3-9 9H2v-3z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Apply to Editor
+                    </button>
+                  )}
+                </div>
+              ))}
+              {streamingText && (
+                <div className="pe-msg pe-msg--assistant">
+                  <p className="pe-msg-text">{streamingText}<span className="pe-cursor">▊</span></p>
+                </div>
+              )}
+              <div ref={msgEndRef} />
+            </div>
+          </div>
+
+          {/* Reply input */}
+          <div className="pe-reply">
+            <input
+              ref={inputRef}
+              type="text"
+              className="pe-reply-input"
+              placeholder={hasReferenceWaiting ? 'Type your question about the selection...' : "Ask Claw'd anything..."}
+              value={replyInput}
+              onChange={e => setReplyInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isStreaming}
+            />
+            <button
+              type="button"
+              className="pe-reply-btn"
+              onClick={handleReply}
+              disabled={isStreaming || !replyInput.trim()}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M14 2L7 9M14 2l-5 12-2-5-5-2z"/></svg>
+            </button>
+          </div>
         </div>
       </form>
-    </>
+    </div>
   )
 }
