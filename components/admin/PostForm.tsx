@@ -134,9 +134,11 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
   // Preview selection rect for overlay positioning in preview mode
   const [previewSelRect, setPreviewSelRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
 
-  // Image upload
+  // Image upload (deferred: local preview first, upload on save)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cursorPosRef = useRef<number>(0)
   const [uploading, setUploading] = useState(false)
+  const pendingImagesRef = useRef<Map<string, File>>(new Map())
 
   const abortRef = useRef<AbortController | null>(null)
   const msgEndRef = useRef<HTMLDivElement>(null)
@@ -621,9 +623,8 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     }, 0)
   }, [form.content])
 
-  // Image upload to Cloudinary
-  const uploadImage = useCallback(async (file: File) => {
-    if (uploading) return
+  // Stage image locally (blob URL preview, upload deferred to save)
+  const stageImage = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
       setToast({ message: 'Only image files are allowed', type: 'error' })
       return
@@ -633,43 +634,68 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
       return
     }
 
-    setUploading(true)
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('upload_preset', 'lxqdss4t')
-    formData.append('folder', 'blog')
+    const blobUrl = URL.createObjectURL(file)
+    pendingImagesRef.current.set(blobUrl, file)
 
-    try {
+    const alt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
+    const markdown = `![${alt}](${blobUrl})`
+
+    // Insert at saved cursor position
+    const pos = cursorPosRef.current
+    const before = form.content.substring(0, pos)
+    const after = form.content.substring(pos)
+    const separator = before.endsWith('\n') || before === '' ? '' : '\n\n'
+    setForm(f => ({ ...f, content: before + separator + markdown + '\n' + after }))
+    setToast({ message: 'Image added! Will upload on save.', type: 'success' })
+
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }, [form.content])
+
+  // Upload all pending images to Cloudinary, replace blob URLs with CDN URLs
+  const uploadPendingImages = useCallback(async (content: string): Promise<string> => {
+    const pending = pendingImagesRef.current
+    if (pending.size === 0) return content
+
+    // Only upload images still referenced in content
+    const toUpload = Array.from(pending.entries()).filter(([blobUrl]) => content.includes(blobUrl))
+    if (toUpload.length === 0) {
+      // Clean up unused blob URLs
+      Array.from(pending.keys()).forEach(url => URL.revokeObjectURL(url))
+      pending.clear()
+      return content
+    }
+
+    let updated = content
+    for (const [blobUrl, file] of toUpload) {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', 'lxqdss4t')
+      formData.append('folder', 'blog')
+
       const res = await fetch('https://api.cloudinary.com/v1_1/dpust3pte/image/upload', {
         method: 'POST',
         body: formData,
       })
-      if (!res.ok) throw new Error('Upload failed')
+      if (!res.ok) throw new Error(`Failed to upload image: ${file.name}`)
       const data = await res.json()
-      const url = data.secure_url as string
-      const alt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
-      const markdown = `![${alt}](${url})`
+      const cdnUrl = data.secure_url as string
 
-      // Insert at cursor position
-      const textarea = textareaRef.current
-      const pos = textarea ? textarea.selectionStart : form.content.length
-      const before = form.content.substring(0, pos)
-      const after = form.content.substring(pos)
-      const separator = before.endsWith('\n') || before === '' ? '' : '\n\n'
-      setForm(f => ({ ...f, content: before + separator + markdown + '\n' + after }))
-      setToast({ message: 'Image uploaded!', type: 'success' })
-    } catch {
-      setToast({ message: 'Failed to upload image', type: 'error' })
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
+      updated = updated.split(blobUrl).join(cdnUrl)
+      URL.revokeObjectURL(blobUrl)
+      pending.delete(blobUrl)
     }
-  }, [uploading, form.content])
+
+    // Clean up any remaining unused blob URLs
+    Array.from(pending.keys()).forEach(url => URL.revokeObjectURL(url))
+    pending.clear()
+
+    return updated
+  }, [])
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) uploadImage(file)
-  }, [uploadImage])
+    if (file) stageImage(file)
+  }, [stageImage])
 
   // Paste image handler
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
@@ -678,21 +704,25 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     for (const item of Array.from(items)) {
       if (item.type.startsWith('image/')) {
         e.preventDefault()
+        const textarea = textareaRef.current
+        cursorPosRef.current = textarea ? textarea.selectionStart : form.content.length
         const file = item.getAsFile()
-        if (file) uploadImage(file)
+        if (file) stageImage(file)
         return
       }
     }
-  }, [uploadImage])
+  }, [stageImage, form.content])
 
   // Drop image handler
   const handleDrop = useCallback((e: React.DragEvent) => {
     const file = e.dataTransfer?.files?.[0]
     if (file && file.type.startsWith('image/')) {
       e.preventDefault()
-      uploadImage(file)
+      const textarea = textareaRef.current
+      cursorPosRef.current = textarea ? textarea.selectionStart : form.content.length
+      stageImage(file)
     }
-  }, [uploadImage])
+  }, [stageImage, form.content])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     if (e.dataTransfer?.types?.includes('Files')) {
@@ -704,6 +734,16 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     e.preventDefault()
     setLoading(true)
     try {
+      // Upload pending images to CDN first
+      let finalContent = form.content
+      if (pendingImagesRef.current.size > 0) {
+        setUploading(true)
+        setToast({ message: 'Uploading images...', type: 'success' })
+        finalContent = await uploadPendingImages(form.content)
+        setForm(f => ({ ...f, content: finalContent }))
+        setUploading(false)
+      }
+
       const url = post?.id
         ? `/api/admin/${isNote ? 'notes' : 'posts'}/${post.id}`
         : `/api/admin/${isNote ? 'notes' : 'posts'}`
@@ -711,7 +751,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, content: finalContent }),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -799,7 +839,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={loading || !!rewrite?.active} className="admin-btn admin-btn-primary">
-            {loading ? 'Saving...' : post?.id ? 'Save Changes' : 'Create'}
+            {uploading ? 'Uploading images...' : loading ? 'Saving...' : post?.id ? 'Save Changes' : 'Create'}
           </button>
         </div>
       </div>
@@ -872,7 +912,12 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                     <button
                       type="button"
                       className="pe-toolbar-btn"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => {
+                        // Save cursor position before file dialog steals focus
+                        const textarea = textareaRef.current
+                        cursorPosRef.current = textarea ? textarea.selectionStart : form.content.length
+                        fileInputRef.current?.click()
+                      }}
                       disabled={uploading}
                       title="Upload image"
                     >
