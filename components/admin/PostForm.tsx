@@ -134,6 +134,10 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
   // Preview selection rect for overlay positioning in preview mode
   const [previewSelRect, setPreviewSelRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
 
+  // Image upload
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
   const abortRef = useRef<AbortController | null>(null)
   const msgEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -617,6 +621,85 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     }, 0)
   }, [form.content])
 
+  // Image upload to Cloudinary
+  const uploadImage = useCallback(async (file: File) => {
+    if (uploading) return
+    if (!file.type.startsWith('image/')) {
+      setToast({ message: 'Only image files are allowed', type: 'error' })
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setToast({ message: 'Image must be under 10MB', type: 'error' })
+      return
+    }
+
+    setUploading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('upload_preset', 'lxqdss4t')
+    formData.append('folder', 'blog')
+
+    try {
+      const res = await fetch('https://api.cloudinary.com/v1_1/dpust3pte/image/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      if (!res.ok) throw new Error('Upload failed')
+      const data = await res.json()
+      const url = data.secure_url as string
+      const alt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
+      const markdown = `![${alt}](${url})`
+
+      // Insert at cursor position
+      const textarea = textareaRef.current
+      const pos = textarea ? textarea.selectionStart : form.content.length
+      const before = form.content.substring(0, pos)
+      const after = form.content.substring(pos)
+      const separator = before.endsWith('\n') || before === '' ? '' : '\n\n'
+      setForm(f => ({ ...f, content: before + separator + markdown + '\n' + after }))
+      setToast({ message: 'Image uploaded!', type: 'success' })
+    } catch {
+      setToast({ message: 'Failed to upload image', type: 'error' })
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }, [uploading, form.content])
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) uploadImage(file)
+  }, [uploadImage])
+
+  // Paste image handler
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        const file = item.getAsFile()
+        if (file) uploadImage(file)
+        return
+      }
+    }
+  }, [uploadImage])
+
+  // Drop image handler
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    const file = e.dataTransfer?.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      e.preventDefault()
+      uploadImage(file)
+    }
+  }, [uploadImage])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer?.types?.includes('Files')) {
+      e.preventDefault()
+    }
+  }, [])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -785,6 +868,33 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                     <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('```\n', '\n```')} title="Code block">
                       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 4L1 8l4 4M11 4l4 4-4 4"/></svg>
                     </button>
+                    <div className="pe-toolbar-sep" />
+                    <button
+                      type="button"
+                      className="pe-toolbar-btn"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      title="Upload image"
+                    >
+                      {uploading ? (
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="pe-spin">
+                          <path d="M8 1v3M8 12v3M1 8h3M12 8h3" strokeLinecap="round"/>
+                        </svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/>
+                          <circle cx="5" cy="6" r="1.5"/>
+                          <path d="M1.5 11l3.5-3.5L8 10.5l2.5-3L14.5 13" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      style={{ display: 'none' }}
+                    />
                   </>
                 )}
                 {rewrite?.active && (
@@ -897,6 +1007,9 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                     }}
                     onMouseUp={handleTextSelect}
                     onKeyUp={handleTextSelect}
+                    onPaste={handlePaste}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
                     className={`pe-textarea${rewrite?.active ? ' pe-textarea--rewriting' : ''}`}
                     readOnly={!!rewrite?.active}
                     placeholder="# Title&#10;&#10;Write your content in Markdown..."
