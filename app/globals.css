@@ -6268,6 +6268,45 @@ a.skill-card:hover {
 }
 .pe-msg-apply-btn svg { width: 10px; height: 10px; }
 
+/* ── Suggest blocks in AI messages ───────────────── */
+.pe-msg-parsed {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pe-suggest-block {
+  background: rgba(180,118,44,0.06);
+  border: 1px solid rgba(180,118,44,0.2);
+  border-left: 3px solid var(--admin-accent);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+[data-theme="dark"] .pe-suggest-block {
+  background: rgba(180,118,44,0.08);
+  border-color: rgba(212,162,76,0.25);
+}
+.pe-suggest-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--admin-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pe-suggest-text {
+  font-family: 'JetBrains Mono', 'Source Code Pro', monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--admin-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* ── Textarea rewrite-active indicator ──────────── */
 .pe-textarea--rewriting {
   opacity: 0.7;
