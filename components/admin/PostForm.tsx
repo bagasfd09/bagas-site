@@ -118,6 +118,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 })
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const editorWrapRef = useRef<HTMLDivElement>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
 
   // Rewrite state
   const [rewrite, setRewrite] = useState<RewriteState | null>(null)
@@ -222,6 +223,66 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     setTooltipPos({ top: Math.max(0, top), left })
     setShowTooltip(true)
   }, [rewrite])
+
+  // Preview text selection handler
+  const handlePreviewSelect = useCallback(() => {
+    const selection = window.getSelection()
+    if (!selection || selection.isCollapsed || !previewRef.current) {
+      setShowTooltip(false)
+      setSelectedText('')
+      setSelectionRange(null)
+      return
+    }
+
+    const text = selection.toString().trim()
+    if (text.length < 5) {
+      setShowTooltip(false)
+      setSelectedText('')
+      setSelectionRange(null)
+      return
+    }
+
+    // Find this text in the raw markdown to get selection range
+    // Use a normalized search: strip markdown formatting chars for matching
+    const rawContent = form.content
+    const idx = rawContent.indexOf(text)
+    if (idx !== -1) {
+      setSelectionRange({ start: idx, end: idx + text.length })
+    } else {
+      // Fuzzy: the rendered text might differ from raw markdown
+      // Try finding a substring match (first 30 chars of selection)
+      const searchKey = text.substring(0, 30)
+      const fuzzyIdx = rawContent.indexOf(searchKey)
+      if (fuzzyIdx !== -1) {
+        // Find the end by searching for the last ~30 chars
+        const endKey = text.substring(Math.max(0, text.length - 30))
+        const endIdx = rawContent.indexOf(endKey, fuzzyIdx)
+        if (endIdx !== -1) {
+          setSelectionRange({ start: fuzzyIdx, end: endIdx + endKey.length })
+        } else {
+          setSelectionRange({ start: fuzzyIdx, end: fuzzyIdx + text.length })
+        }
+      } else {
+        // Can't map back — still allow Ask (but not Rewrite into editor)
+        setSelectionRange(null)
+      }
+    }
+
+    setSelectedText(text)
+
+    // Position tooltip near selection
+    const range = selection.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    const previewRect = previewRef.current.getBoundingClientRect()
+    const editorContent = previewRef.current.parentElement
+    const parentRect = editorContent ? editorContent.getBoundingClientRect() : previewRect
+
+    setTooltipPos({
+      top: rect.top - parentRect.top - 40 + previewRef.current.scrollTop,
+      left: Math.min(rect.left - parentRect.left + rect.width / 2, parentRect.width - 200),
+    })
+    setShowTooltip(true)
+  }, [form.content])
 
   // Hide tooltip on click outside
   useEffect(() => {
@@ -376,8 +437,13 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
   const handleRewriteSubmit = useCallback((instruction: string) => {
     if (!selectionRange) return
     setShowRewritePrompt(false)
-    streamRewrite(instruction, selectionRange.start, selectionRange.end)
-  }, [selectionRange, streamRewrite])
+    // Switch to Write mode so user sees the rewrite animation
+    if (previewMode) setPreviewMode(false)
+    // Small delay to let textarea render before starting rewrite
+    setTimeout(() => {
+      streamRewrite(instruction, selectionRange.start, selectionRange.end)
+    }, previewMode ? 100 : 0)
+  }, [selectionRange, streamRewrite, previewMode])
 
   // Handle "Apply to Editor" — only applies the <suggest> block content
   const handleApplyToEditor = useCallback((suggestText: string) => {
@@ -737,11 +803,42 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
             <div className="pe-editor-content">
               {previewMode ? (
                 /* Preview pane */
-                <div className="pe-preview">
+                <div className="pe-preview" ref={previewRef} onMouseUp={handlePreviewSelect}>
                   {form.content.trim() ? (
                     <MarkdownRenderer content={form.content} />
                   ) : (
                     <p className="pe-preview-empty">Nothing to preview yet. Switch to Write and add some content.</p>
+                  )}
+
+                  {/* Tooltip in preview mode */}
+                  {showTooltip && selectedText && (
+                    <div
+                      className="pe-tooltip"
+                      style={{ top: tooltipPos.top, left: Math.max(0, tooltipPos.left) }}
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      <button
+                        type="button"
+                        className="pe-tooltip-btn"
+                        onClick={handleAskAboutSelection}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 1a7 7 0 100 14A7 7 0 008 1z"/><path d="M6 8l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        Ask Claw&apos;d
+                      </button>
+                      {selectionRange && (
+                        <>
+                          <div className="pe-tooltip-sep" />
+                          <button
+                            type="button"
+                            className="pe-tooltip-btn"
+                            onClick={handleRewriteClick}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2l3 3-9 9H2v-3z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            Rewrite
+                          </button>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               ) : (
