@@ -735,7 +735,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                 />
               )}
 
-              {/* Asking overlay (shimmer on referenced text while AI thinks) */}
+              {/* Asking overlay (subtle highlight on referenced text while AI thinks) */}
               {showAskingOverlay && askingRange && (
                 <RewriteOverlay
                   textareaRef={textareaRef}
@@ -744,6 +744,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                   selectionEnd={askingRange.end}
                   originalContent={form.content}
                   phase="loading"
+                  mode="asking"
                 />
               )}
 

@@ -2,13 +2,17 @@
 
 import { useEffect, useState, useCallback } from 'react'
 
+type OverlayPhase = 'loading' | 'streaming' | 'done'
+type OverlayMode = 'rewrite' | 'asking'
+
 interface RewriteOverlayProps {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>
   editorWrapRef: React.RefObject<HTMLDivElement | null>
   selectionStart: number
   selectionEnd: number
   originalContent: string
-  phase: 'loading' | 'streaming' | 'done'
+  phase: OverlayPhase
+  mode?: OverlayMode
 }
 
 export default function RewriteOverlay({
@@ -18,69 +22,45 @@ export default function RewriteOverlay({
   selectionEnd,
   originalContent,
   phase,
+  mode = 'rewrite',
 }: RewriteOverlayProps) {
-  const [rect, setRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
+  const [rect, setRect] = useState<{ top: number; height: number; fullWidth: number; offsetLeft: number } | null>(null)
 
   const computePosition = useCallback(() => {
     const textarea = textareaRef.current
     const editorWrap = editorWrapRef.current
     if (!textarea || !editorWrap) return
 
-    // Mirror div technique: create a hidden div that mirrors the textarea
-    const mirror = document.createElement('div')
     const style = window.getComputedStyle(textarea)
+    const lineHeight = parseFloat(style.lineHeight) || 22
+    const paddingTop = parseFloat(style.paddingTop) || 0
+    const paddingLeft = parseFloat(style.paddingLeft) || 0
 
-    mirror.style.cssText = `
-      position: absolute;
-      visibility: hidden;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      overflow: hidden;
-      font-family: ${style.fontFamily};
-      font-size: ${style.fontSize};
-      line-height: ${style.lineHeight};
-      padding: ${style.padding};
-      border: ${style.border};
-      width: ${textarea.clientWidth}px;
-      tab-size: ${style.tabSize};
-      letter-spacing: ${style.letterSpacing};
-    `
-    document.body.appendChild(mirror)
-
-    // Build content with a span wrapping the selection
+    // Count lines before selection start and end
     const textBefore = originalContent.substring(0, selectionStart)
     const textSelected = originalContent.substring(selectionStart, selectionEnd)
+    const linesBefore = textBefore.split('\n').length - 1
+    const linesInSelection = textSelected.split('\n').length
 
-    const beforeNode = document.createTextNode(textBefore)
-    const span = document.createElement('span')
-    span.textContent = textSelected || '\u00a0'
-    const afterNode = document.createTextNode(originalContent.substring(selectionEnd))
+    const scrollTop = textarea.scrollTop
 
-    mirror.appendChild(beforeNode)
-    mirror.appendChild(span)
-    mirror.appendChild(afterNode)
+    // Position relative to textarea's content area
+    const topInTextarea = paddingTop + (linesBefore * lineHeight) - scrollTop
+    const height = linesInSelection * lineHeight
 
-    const spanRect = span.getBoundingClientRect()
-    const mirrorRect = mirror.getBoundingClientRect()
-
-    const relTop = spanRect.top - mirrorRect.top - textarea.scrollTop
-    const relLeft = spanRect.left - mirrorRect.left
-
-    // Get textarea position relative to editor content container
-    const editorContent = textarea.parentElement
+    // Get textarea position relative to .pe-editor-content
     const textareaRect = textarea.getBoundingClientRect()
-    const parentRect = (editorContent || editorWrap).getBoundingClientRect()
+    const parentEl = textarea.parentElement
+    const parentRect = (parentEl || editorWrap).getBoundingClientRect()
     const offsetTop = textareaRect.top - parentRect.top
     const offsetLeft = textareaRect.left - parentRect.left
 
     setRect({
-      top: offsetTop + relTop,
-      left: offsetLeft + relLeft,
-      width: Math.min(spanRect.width, textarea.clientWidth - relLeft - 16),
-      height: spanRect.height,
+      top: offsetTop + topInTextarea,
+      height: Math.max(height, lineHeight),
+      fullWidth: textarea.clientWidth - paddingLeft * 2,
+      offsetLeft: offsetLeft + paddingLeft,
     })
-
-    document.body.removeChild(mirror)
   }, [textareaRef, editorWrapRef, selectionStart, selectionEnd, originalContent])
 
   useEffect(() => {
@@ -102,22 +82,48 @@ export default function RewriteOverlay({
   // Auto-remove after done phase
   useEffect(() => {
     if (phase === 'done') {
-      const timer = setTimeout(() => setRect(null), 500)
+      const timer = setTimeout(() => setRect(null), 800)
       return () => clearTimeout(timer)
     }
   }, [phase])
 
   if (!rect) return null
 
+  const isAsking = mode === 'asking'
+  const phaseClass = isAsking ? 'pe-rewrite-overlay--asking' : `pe-rewrite-overlay--${phase}`
+
+  const statusLabel = isAsking
+    ? 'Claw\u2019d is thinking...'
+    : phase === 'loading'
+      ? 'Preparing rewrite...'
+      : phase === 'streaming'
+        ? 'Rewriting...'
+        : 'Done!'
+
   return (
     <div
-      className={`pe-rewrite-overlay pe-rewrite-overlay--${phase}`}
+      className={`pe-rewrite-overlay ${phaseClass}`}
       style={{
         top: rect.top,
-        left: rect.left,
-        width: Math.max(rect.width, 40),
-        height: Math.max(rect.height, 20),
+        left: rect.offsetLeft,
+        width: rect.fullWidth,
+        height: rect.height,
       }}
-    />
+    >
+      {/* Status badge */}
+      {phase !== 'done' && (
+        <div className="pe-overlay-badge">
+          <span className="pe-overlay-badge-dot" />
+          <span>{statusLabel}</span>
+        </div>
+      )}
+
+      {/* Success checkmark on done */}
+      {phase === 'done' && !isAsking && (
+        <div className="pe-overlay-done">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 8.5l3 3 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </div>
+      )}
+    </div>
   )
 }
