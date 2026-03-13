@@ -45,6 +45,40 @@ interface RewriteState {
   streamedSoFar: string
 }
 
+// Parse AI message for <suggest> blocks
+type MsgSegment = { type: 'text'; content: string } | { type: 'suggest'; content: string }
+
+function parseMessageSegments(text: string): MsgSegment[] {
+  const segments: MsgSegment[] = []
+  const regex = /<suggest>([\s\S]*?)<\/suggest>/g
+  let lastIndex = 0
+  let match
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: 'text', content: text.slice(lastIndex, match.index).trim() })
+    }
+    segments.push({ type: 'suggest', content: match[1].trim() })
+    lastIndex = match.index + match[0].length
+  }
+
+  if (lastIndex < text.length) {
+    const remaining = text.slice(lastIndex).trim()
+    if (remaining) segments.push({ type: 'text', content: remaining })
+  }
+
+  // If no suggest tags found, return the whole text as-is
+  if (segments.length === 0) {
+    segments.push({ type: 'text', content: text })
+  }
+
+  return segments
+}
+
+function hasSuggestBlocks(text: string): boolean {
+  return /<suggest>[\s\S]*?<\/suggest>/.test(text)
+}
+
 export default function PostForm({ post, type = 'post' }: PostFormProps) {
   const router = useRouter()
   const isNote = type === 'note'
@@ -89,6 +123,9 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
   const [showRewritePrompt, setShowRewritePrompt] = useState(false)
   const [undoStack, setUndoStack] = useState<string[]>([])
   const rewriteAbortRef = useRef<AbortController | null>(null)
+
+  // "Asking" overlay: shows shimmer on referenced text while AI thinks
+  const [askingRange, setAskingRange] = useState<{ start: number; end: number } | null>(null)
 
   const abortRef = useRef<AbortController | null>(null)
   const msgEndRef = useRef<HTMLDivElement>(null)
@@ -143,7 +180,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
 
   // Text selection handler
   const handleTextSelect = useCallback(() => {
-    if (rewrite?.active) return // Don't select during rewrite
+    if (rewrite?.active) return
 
     const textarea = textareaRef.current
     const editorWrap = editorWrapRef.current
@@ -169,10 +206,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     setSelectedText(text)
     setSelectionRange({ start, end })
 
-    // Position tooltip relative to editor wrapper
     const textareaRect = textarea.getBoundingClientRect()
-
-    // Estimate line position from selection
     const textBefore = textarea.value.substring(0, start)
     const linesBefore = textBefore.split('\n').length
     const lineHeight = 22
@@ -197,7 +231,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [showTooltip])
 
-  // Stream response from OpenClaw (refactored with onDelta callback)
+  // Stream response from OpenClaw (with optional onDelta callback)
   const streamResponse = useCallback(async (
     apiMessages: { role: string; content: string }[],
     signal: AbortSignal,
@@ -249,10 +283,8 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     const originalContent = form.content
     const originalText = originalContent.substring(selStart, selEnd)
 
-    // Push current content to undo stack
     setUndoStack(prev => [...prev.slice(-9), originalContent])
 
-    // Set rewrite state
     setRewrite({
       active: true,
       selectionStart: selStart,
@@ -283,12 +315,10 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     ]
 
     try {
-      // Switch to loading phase briefly, then streaming
       await new Promise(r => setTimeout(r, 100))
       setRewrite(prev => prev ? { ...prev, phase: 'streaming' } : null)
 
       const result = await streamResponse(apiMessages, controller.signal, (_delta, accumulated) => {
-        // Progressive replacement
         const before = originalContent.substring(0, selStart)
         const after = originalContent.substring(selEnd)
         setForm(f => ({ ...f, content: before + accumulated + after }))
@@ -296,25 +326,21 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
       })
 
       if (result) {
-        // Final update
         const before = originalContent.substring(0, selStart)
         const after = originalContent.substring(selEnd)
         setForm(f => ({ ...f, content: before + result + after }))
         setRewrite(prev => prev ? { ...prev, phase: 'done', streamedSoFar: result } : null)
 
-        // Add to conversation for context
         setMessages(prev => [...prev,
           { role: 'user', text: `Rewrite: "${originalText.substring(0, 80)}${originalText.length > 80 ? '...' : ''}" → ${instruction}` },
           { role: 'assistant', text: `Rewrote the selected text. Result:\n"${result.substring(0, 200)}${result.length > 200 ? '...' : ''}"` },
         ])
 
-        // Clear rewrite after fade
         setTimeout(() => setRewrite(null), 600)
         setToast({ message: 'Text rewritten! Ctrl+Z to undo', type: 'success' })
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
-        // Restore original content on cancel
         setForm(f => ({ ...f, content: originalContent }))
         setUndoStack(prev => prev.slice(0, -1))
         setToast({ message: 'Rewrite cancelled', type: 'success' })
@@ -349,27 +375,26 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     streamRewrite(instruction, selectionRange.start, selectionRange.end)
   }, [selectionRange, streamRewrite])
 
-  // Handle "Apply to Editor" from conversation
-  const handleApplyToEditor = useCallback((text: string) => {
+  // Handle "Apply to Editor" — only applies the <suggest> block content
+  const handleApplyToEditor = useCallback((suggestText: string) => {
     if (rewrite?.active) return
 
     if (selectionRange) {
-      // Apply to last known selection range
       const before = form.content.substring(0, selectionRange.start)
       const after = form.content.substring(selectionRange.end)
       setUndoStack(prev => [...prev.slice(-9), form.content])
-      setForm(f => ({ ...f, content: before + text + after }))
+      setForm(f => ({ ...f, content: before + suggestText + after }))
+      setSelectionRange(null)
       setToast({ message: 'Applied to editor! Ctrl+Z to undo', type: 'success' })
     } else {
-      // No selection: append at cursor or end
       const textarea = textareaRef.current
       const pos = textarea ? textarea.selectionStart : form.content.length
       const before = form.content.substring(0, pos)
       const after = form.content.substring(pos)
       const separator = before.endsWith('\n') || before === '' ? '' : '\n\n'
       setUndoStack(prev => [...prev.slice(-9), form.content])
-      setForm(f => ({ ...f, content: before + separator + text + after }))
-      setToast({ message: 'Text appended to editor! Ctrl+Z to undo', type: 'success' })
+      setForm(f => ({ ...f, content: before + separator + suggestText + after }))
+      setToast({ message: 'Text inserted! Ctrl+Z to undo', type: 'success' })
     }
   }, [rewrite, selectionRange, form.content])
 
@@ -387,9 +412,18 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     setIsStreaming(true)
     setStreamingText('')
 
+    // If there's a reference with a selection range, show asking overlay
+    if (reference && selectionRange) {
+      setAskingRange({ ...selectionRange })
+    }
+
     const systemPrompt = [
-      'You are a writing assistant for a blog post editor. Keep responses concise and actionable (2-4 sentences).',
+      'You are a writing assistant for a blog post editor.',
       'Respond in the same language as the content.',
+      'Keep your explanation concise (2-4 sentences).',
+      'When you suggest specific replacement text for the referenced content, wrap ONLY the replacement text in <suggest>...</suggest> tags.',
+      'Your explanation should be outside the tags. You may include multiple <suggest> blocks for different options.',
+      'If you are giving general advice without a concrete text replacement, do not use <suggest> tags.',
       form.title ? `Post title: "${form.title}"` : '',
       form.description ? `Description: ${form.description}` : '',
       form.tags.length ? `Tags: ${form.tags.join(', ')}` : '',
@@ -423,21 +457,20 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
       setStreamingText('')
     } finally {
       setIsStreaming(false)
+      setAskingRange(null)
       inputRef.current?.focus()
     }
-  }, [isStreaming, messages, form.title, form.description, form.tags, streamResponse])
+  }, [isStreaming, messages, form.title, form.description, form.tags, selectionRange, streamResponse])
 
   // Handle "Ask Claw'd about this"
   const handleAskAboutSelection = useCallback(() => {
     if (!selectedText) return
     setShowTooltip(false)
 
-    // Add a placeholder user message with reference, then focus input
     const userMsg: ChatMsg = { role: 'user', text: '', reference: selectedText }
     setMessages(prev => [...prev, userMsg])
     setSelectedText('')
 
-    // Focus input so user can type their question
     setTimeout(() => inputRef.current?.focus(), 100)
   }, [selectedText])
 
@@ -446,10 +479,8 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     const text = replyInput.trim()
     if (!text) return
 
-    // Check if last message is a reference-only placeholder (empty text)
     const lastMsg = messages[messages.length - 1]
     if (lastMsg?.role === 'user' && lastMsg.text === '' && lastMsg.reference) {
-      // Update the placeholder with the actual text
       setMessages(prev => {
         const updated = [...prev]
         updated[updated.length - 1] = { ...lastMsg, text }
@@ -457,9 +488,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
       })
       setReplyInput('')
 
-      // Now send to AI with reference context
       const ref = lastMsg.reference
-      // Remove the placeholder, sendMessage will re-add it
       setMessages(prev => prev.slice(0, -1))
       sendMessage(text, ref)
     } else {
@@ -531,8 +560,51 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     }
   }
 
+  // Render a single message with parsed <suggest> blocks
+  const renderMessageContent = useCallback((msg: ChatMsg) => {
+    if (!msg.text) return null
+
+    const segments = parseMessageSegments(msg.text)
+    const hasSuggestions = hasSuggestBlocks(msg.text)
+
+    if (!hasSuggestions) {
+      return <p className="pe-msg-text">{msg.text}</p>
+    }
+
+    return (
+      <div className="pe-msg-parsed">
+        {segments.map((seg, j) => {
+          if (seg.type === 'text') {
+            return <p key={j} className="pe-msg-text">{seg.content}</p>
+          }
+          return (
+            <div key={j} className="pe-suggest-block">
+              <div className="pe-suggest-header">
+                <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2l3 3-9 9H2v-3z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <span>Suggested text</span>
+              </div>
+              <p className="pe-suggest-text">{seg.content}</p>
+              <button
+                type="button"
+                className="pe-msg-apply-btn"
+                onClick={() => handleApplyToEditor(seg.content)}
+                disabled={!!rewrite?.active}
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2l3 3-9 9H2v-3z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                Apply to Editor
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }, [handleApplyToEditor, rewrite])
+
   const mascotState = isStreaming || rewrite?.active ? 'writing' : messages.length > 0 ? 'presenting' : 'idle'
   const hasReferenceWaiting = messages.length > 0 && messages[messages.length - 1]?.role === 'user' && messages[messages.length - 1]?.text === '' && messages[messages.length - 1]?.reference
+
+  // Determine if we should show asking overlay (shimmer on referenced text while AI thinks)
+  const showAskingOverlay = isStreaming && askingRange && !rewrite?.active
 
   return (
     <div className="pe-page">
@@ -651,7 +723,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                 placeholder="# Title&#10;&#10;Write your content in Markdown..."
               />
 
-              {/* Rewrite overlay */}
+              {/* Rewrite overlay (during direct rewrite) */}
               {rewrite?.active && (
                 <RewriteOverlay
                   textareaRef={textareaRef}
@@ -660,6 +732,18 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                   selectionEnd={rewrite.selectionEnd}
                   originalContent={rewrite.originalContent}
                   phase={rewrite.phase}
+                />
+              )}
+
+              {/* Asking overlay (shimmer on referenced text while AI thinks) */}
+              {showAskingOverlay && askingRange && (
+                <RewriteOverlay
+                  textareaRef={textareaRef}
+                  editorWrapRef={editorWrapRef}
+                  selectionStart={askingRange.start}
+                  selectionEnd={askingRange.end}
+                  originalContent={form.content}
+                  phase="loading"
                 />
               )}
 
@@ -703,7 +787,6 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
 
           {/* Metadata bar */}
           <div className="pe-metadata">
-            {/* Tags */}
             <div className="pe-meta-group">
               <span className="pe-meta-label">Tags</span>
               <div className="pe-tags">
@@ -758,7 +841,6 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
 
             <div className="pe-meta-sep" />
 
-            {/* Toggles */}
             <div className="pe-toggles">
               <label className="pe-toggle">
                 <input
@@ -860,17 +942,8 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                       <p className="pe-reference-text">{msg.reference}</p>
                     </div>
                   )}
-                  {msg.text && <p className="pe-msg-text">{msg.text}</p>}
-                  {msg.role === 'assistant' && msg.text && !msg.text.startsWith('Failed') && !msg.text.startsWith('Rewrote') && (
-                    <button
-                      type="button"
-                      className="pe-msg-apply-btn"
-                      onClick={() => handleApplyToEditor(msg.text)}
-                      disabled={!!rewrite?.active}
-                    >
-                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2l3 3-9 9H2v-3z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      Apply to Editor
-                    </button>
+                  {msg.role === 'assistant' ? renderMessageContent(msg) : (
+                    msg.text && <p className="pe-msg-text">{msg.text}</p>
                   )}
                 </div>
               ))}
