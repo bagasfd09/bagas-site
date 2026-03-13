@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Newsreader } from 'next/font/google'
+import { Newsreader, Source_Serif_4 } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import NextTopLoader from 'nextjs-toploader'
 import './globals.css'
@@ -10,6 +10,14 @@ const newsreader = Newsreader({
   style: ['normal', 'italic'],
   display: 'swap',
   variable: '--font-serif',
+})
+
+const sourceSerif = Source_Serif_4({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+  variable: '--font-article',
 })
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://bagas.dev'
@@ -97,7 +105,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={newsreader.variable} suppressHydrationWarning>
+    <html lang="en" className={`${newsreader.variable} ${sourceSerif.variable}`} suppressHydrationWarning>
       <body>
         <NextTopLoader color="#b4762c" height={2} showSpinner={false} shadow={false} crawlSpeed={300} speed={300} easing="ease" />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>

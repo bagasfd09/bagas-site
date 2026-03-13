@@ -835,6 +835,25 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
               Cancel Rewrite
             </button>
           )}
+          <button
+            type="button"
+            className="admin-btn admin-btn-secondary"
+            onClick={() => {
+              sessionStorage.setItem('post-preview', JSON.stringify({
+                title: form.title,
+                content: form.content,
+                description: form.description,
+                tags: form.tags,
+                type: form.type,
+              }))
+              window.open('/admin/posts/preview', '_blank')
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginRight: 4 }}>
+              <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/>
+            </svg>
+            Live Preview
+          </button>
           <button type="button" onClick={() => router.back()} className="admin-btn admin-btn-secondary">
             Cancel
           </button>
@@ -976,7 +995,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                 /* Preview pane */
                 <div className="pe-preview" ref={previewRef} onMouseUp={handlePreviewSelect}>
                   {form.content.trim() ? (
-                    <MarkdownRenderer content={form.content} allowBlobUrls />
+                    <MarkdownRenderer content={form.content} className="article-body" allowBlobUrls />
                   ) : (
                     <p className="pe-preview-empty">Nothing to preview yet. Switch to Write and add some content.</p>
                   )}

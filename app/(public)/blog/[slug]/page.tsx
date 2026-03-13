@@ -52,7 +52,7 @@ export default async function BlogPostPage({ params }: Props) {
   const description = post.description || `${post.content.slice(0, 155).replace(/[#\n]/g, ' ').trim()}...`
 
   return (
-    <article>
+    <article className="article-page">
       <BlogPostJsonLd
         title={post.title}
         description={description}
@@ -68,48 +68,26 @@ export default async function BlogPostPage({ params }: Props) {
           { name: post.title, url: `${siteUrl}/blog/${post.slug}` },
         ]}
       />
-      <div className="mb-8">
-        <Link
-          href="/blog"
-          className="text-sm hover:underline mb-6 block"
-          style={{ color: 'var(--muted)' }}
-        >
+      <div className="article-header">
+        <Link href="/blog" className="article-back">
           &larr; Back to Blog
         </Link>
-        <h1
-          className="text-4xl font-serif font-normal mb-4"
-          style={{ letterSpacing: '-0.02em' }}
-        >
-          {post.title}
-        </h1>
-        <div className="flex flex-wrap items-center gap-3">
-          <time
-            className="text-sm font-mono"
-            style={{ color: 'var(--muted)' }}
-            dateTime={post.createdAt.toISOString()}
-          >
+        <h1 className="article-title">{post.title}</h1>
+        <div className="article-meta">
+          <time dateTime={post.createdAt.toISOString()}>
             {formatDate(post.createdAt)}
           </time>
           {post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="article-tags">
               {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs px-2 py-0.5 rounded-full border"
-                  style={{
-                    borderColor: 'var(--card-border)',
-                    color: 'var(--muted)',
-                  }}
-                >
-                  {tag}
-                </span>
+                <span key={tag} className="article-tag">{tag}</span>
               ))}
             </div>
           )}
         </div>
       </div>
 
-      <MarkdownRenderer content={post.content} />
+      <MarkdownRenderer content={post.content} className="article-body" />
     </article>
   )
 }
