@@ -976,7 +976,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                 /* Preview pane */
                 <div className="pe-preview" ref={previewRef} onMouseUp={handlePreviewSelect}>
                   {form.content.trim() ? (
-                    <MarkdownRenderer content={form.content} />
+                    <MarkdownRenderer content={form.content} allowBlobUrls />
                   ) : (
                     <p className="pe-preview-empty">Nothing to preview yet. Switch to Write and add some content.</p>
                   )}
