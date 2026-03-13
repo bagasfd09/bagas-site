@@ -126,6 +126,177 @@ pre {
 
 .prose hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
 
+/* ─── ARTICLE PAGE (Medium-inspired reading experience) ──── */
+.article-page {
+  --article-bg: #ffffff;
+  --article-text: #242424;
+  --article-muted: #6b6b6b;
+  --article-border: rgba(0, 0, 0, 0.08);
+  --article-link: #1a8917;
+  --article-code-bg: #f6f6f6;
+}
+.dark .article-page {
+  --article-bg: #1a1a1a;
+  --article-text: #e0e0e0;
+  --article-muted: #999;
+  --article-border: rgba(255, 255, 255, 0.08);
+  --article-link: #4caf50;
+  --article-code-bg: #2a2a2a;
+}
+
+/* White reading surface — covers the cream background */
+.article-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  left: 0;
+  background: var(--article-bg);
+  z-index: -1;
+  pointer-events: none;
+}
+@media (min-width: 768px) {
+  .article-page::before { left: 300px; }
+}
+
+.article-header { margin-bottom: 2.5rem; }
+
+.article-back {
+  display: inline-block;
+  font-size: 0.875rem;
+  color: var(--article-muted);
+  text-decoration: none;
+  margin-bottom: 2rem;
+  transition: color 0.15s;
+}
+.article-back:hover { color: var(--article-text); }
+
+.article-title {
+  font-family: var(--font-article), 'Source Serif Pro', Georgia, serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--article-text);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+.article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: var(--article-muted);
+}
+.article-meta time { font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+.article-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.article-tag {
+  font-size: 0.75rem;
+  padding: 2px 10px;
+  border-radius: 100px;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--article-muted);
+}
+.dark .article-tag { background: rgba(255, 255, 255, 0.08); }
+
+/* Article body — Source Serif 4, Medium-style */
+.article-body {
+  font-family: var(--font-article), 'Source Serif Pro', Georgia, Cambria, 'Times New Roman', serif;
+  font-size: 1.25rem;
+  line-height: 1.8;
+  color: var(--article-text);
+  word-break: break-word;
+  letter-spacing: -0.003em;
+}
+
+.article-body h1,
+.article-body h2,
+.article-body h3,
+.article-body h4 {
+  font-family: var(--font-article), 'Source Serif Pro', Georgia, serif;
+  color: var(--article-text);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.article-body h1 { font-size: 1.75rem; margin: 2.5rem 0 1rem; font-weight: 700; }
+.article-body h2 {
+  font-size: 1.375rem;
+  margin: 2.25rem 0 0.75rem;
+  font-weight: 700;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.article-body h3 { font-size: 1.2rem; margin: 2rem 0 0.5rem; font-weight: 600; }
+
+.article-body p { margin: 1.5rem 0; }
+
+.article-body a {
+  color: var(--article-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(26, 137, 23, 0.3);
+  transition: text-decoration-color 0.15s;
+}
+.article-body a:hover { text-decoration-color: var(--article-link); }
+.dark .article-body a { text-decoration-color: rgba(76, 175, 80, 0.3); }
+.dark .article-body a:hover { text-decoration-color: var(--article-link); }
+
+.article-body ul,
+.article-body ol { margin: 1.25rem 0; padding-left: 1.75rem; }
+.article-body li { margin: 0.5rem 0; }
+
+.article-body blockquote {
+  border-left: 3px solid var(--article-muted);
+  padding-left: 1.25rem;
+  margin: 1.75rem 0;
+  color: var(--article-muted);
+  font-style: italic;
+  font-size: 1.125rem;
+}
+
+.article-body pre {
+  background: var(--article-code-bg);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin: 1.75rem 0;
+}
+
+.article-body code:not(pre code) {
+  background: var(--article-code-bg);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+}
+
+.article-body img {
+  max-width: 100%;
+  border-radius: 4px;
+  margin: 2rem 0;
+}
+
+.article-body hr {
+  border: none;
+  text-align: center;
+  margin: 2.5rem 0;
+}
+.article-body hr::before {
+  content: '...';
+  font-size: 1.5rem;
+  letter-spacing: 0.6em;
+  color: var(--article-muted);
+}
+
+.article-body table { width: 100%; border-collapse: collapse; margin: 1.75rem 0; font-size: 0.95rem; font-family: -apple-system, sans-serif; }
+.article-body th { border-bottom: 2px solid var(--article-border); padding: 0.6rem 0.75rem; text-align: left; font-weight: 600; }
+.article-body td { border-bottom: 1px solid var(--article-border); padding: 0.6rem 0.75rem; }
+
+.article-body strong { font-weight: 700; color: var(--article-text); }
+
 /* code highlight */
 .dark .hljs { background: #1e1e1e; color: #d4d4d4; }
 
@@ -5106,8 +5277,8 @@ a.skill-card:hover {
   display: flex;
   gap: 20px;
   align-items: stretch;
-  height: calc(100vh - 220px);
-  min-height: 500px;
+  flex: 1;
+  min-height: 0;
 }
 .posts-layout-main {
   flex: 1;
@@ -5541,9 +5712,12 @@ a.skill-card:hover {
 }
 
 @media (max-width: 1024px) {
+  .adm-page-fixed {
+    height: auto;
+    overflow: visible;
+  }
   .posts-layout {
     flex-direction: column;
-    height: auto;
   }
   .posts-layout-main {
     overflow: visible;
@@ -5773,29 +5947,21 @@ a.skill-card:hover {
   width: 100%;
   height: 100%;
   overflow-y: auto;
-  padding: 20px 24px;
+  padding: 2rem 1.5rem;
+  background: #fff;
+  --article-text: #1a1a1a;
+  --article-link: #1a8917;
+  --article-muted: #6b6b6b;
+  --article-border: #e6e6e6;
+  --article-code-bg: #f7f7f7;
 }
-.pe-preview .prose {
-  font-size: 0.875rem;
-  line-height: 1.7;
-}
-.pe-preview .prose h1 { font-size: 1.5rem; margin-top: 1.5rem; }
-.pe-preview .prose h2 { font-size: 1.25rem; margin-top: 1.25rem; }
-.pe-preview .prose h3 { font-size: 1.1rem; margin-top: 1rem; }
-.pe-preview .prose img { max-width: 100%; border-radius: 8px; }
-.pe-preview .prose pre {
-  background: var(--admin-bg);
-  border: 1px solid var(--admin-border);
-  border-radius: 6px;
-  padding: 12px 14px;
-  overflow-x: auto;
-  font-size: 0.8rem;
-}
-.pe-preview .prose code:not(pre code) {
-  background: var(--admin-bg);
-  padding: 2px 5px;
-  border-radius: 3px;
-  font-size: 0.8em;
+.dark .pe-preview {
+  background: #1a1a1a;
+  --article-text: #e0e0e0;
+  --article-link: #4caf50;
+  --article-muted: #999;
+  --article-border: #333;
+  --article-code-bg: #2a2a2a;
 }
 .pe-preview-empty {
   color: var(--admin-text-muted);
@@ -6515,6 +6681,53 @@ a.skill-card:hover {
   .pe-editor-card { min-height: 400px; }
 }
 
+/* ── Live Preview Page ───────────────────────────────────── */
+.preview-page {
+  min-height: 100vh;
+  background: #fff;
+}
+.dark .preview-page { background: #1a1a1a; }
+
+.preview-banner {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--admin-accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.preview-banner-hint {
+  font-weight: 400;
+  text-transform: none;
+  opacity: 0.8;
+}
+
+.preview-container {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 6rem;
+}
+
+/* Override article-page pseudo-element in preview (already has white bg) */
+.preview-page .article-page::before { display: none; }
+
+.preview-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: var(--admin-text-muted);
+  font-size: 0.875rem;
+}
+
 /* ── Batch Skill Add ──────────────────────────────────────── */
 .batch-panel {
   background: var(--admin-surface);
@@ -7091,6 +7304,12 @@ a.skill-card:hover {
 
 .adm-page-in {
   animation: adm-page-in 0.35s ease both;
+}
+.adm-page-fixed {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 72px);
+  overflow: hidden;
 }
 
 /* ── Slide-in variants ───────────────────────────────────── */

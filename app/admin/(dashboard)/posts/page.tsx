@@ -116,7 +116,7 @@ export default function PostsAdminPage() {
   const totalPages = Math.ceil(total / limit)
 
   return (
-    <div className="adm-page-in">
+    <div className="adm-page-in adm-page-fixed">
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
       <ConfirmModal
         isOpen={!!deleteId}

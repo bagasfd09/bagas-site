@@ -41,7 +41,7 @@ export default async function NoteDetailPage({ params }: Props) {
   if (!note) notFound()
 
   return (
-    <article>
+    <article className="article-page">
       <BreadcrumbJsonLd
         items={[
           { name: 'Home', url: siteUrl },
@@ -49,48 +49,26 @@ export default async function NoteDetailPage({ params }: Props) {
           { name: note.title, url: `${siteUrl}/notes/${note.slug}` },
         ]}
       />
-      <div className="mb-8">
-        <Link
-          href="/notes"
-          className="text-sm hover:underline mb-6 block"
-          style={{ color: 'var(--muted)' }}
-        >
+      <div className="article-header">
+        <Link href="/notes" className="article-back">
           &larr; Back to Notes
         </Link>
-        <h1
-          className="text-4xl font-serif font-normal mb-4"
-          style={{ letterSpacing: '-0.02em' }}
-        >
-          {note.title}
-        </h1>
-        <div className="flex flex-wrap items-center gap-3">
-          <time
-            className="text-sm font-mono"
-            style={{ color: 'var(--muted)' }}
-            dateTime={note.createdAt.toISOString()}
-          >
+        <h1 className="article-title">{note.title}</h1>
+        <div className="article-meta">
+          <time dateTime={note.createdAt.toISOString()}>
             {formatDate(note.createdAt)}
           </time>
           {note.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="article-tags">
               {note.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs px-2 py-0.5 rounded-full border"
-                  style={{
-                    borderColor: 'var(--card-border)',
-                    color: 'var(--muted)',
-                  }}
-                >
-                  {tag}
-                </span>
+                <span key={tag} className="article-tag">{tag}</span>
               ))}
             </div>
           )}
         </div>
       </div>
 
-      <MarkdownRenderer content={note.content} />
+      <MarkdownRenderer content={note.content} className="article-body" />
     </article>
   )
 }
