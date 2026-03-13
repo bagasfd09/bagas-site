@@ -131,6 +131,14 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
 
   // "Asking" overlay: shows shimmer on referenced text while AI thinks
   const [askingRange, setAskingRange] = useState<{ start: number; end: number } | null>(null)
+  // Preview selection rect for overlay positioning in preview mode
+  const [previewSelRect, setPreviewSelRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
+
+  // Image upload (deferred: local preview first, upload on save)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cursorPosRef = useRef<number>(0)
+  const [uploading, setUploading] = useState(false)
+  const pendingImagesRef = useRef<Map<string, File>>(new Map())
 
   const abortRef = useRef<AbortController | null>(null)
   const msgEndRef = useRef<HTMLDivElement>(null)
@@ -277,10 +285,23 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     const editorContent = previewRef.current.parentElement
     const parentRect = editorContent ? editorContent.getBoundingClientRect() : previewRect
 
+    const scrollTop = previewRef.current.scrollTop
+    const relTop = rect.top - parentRect.top + scrollTop
+    const relLeft = rect.left - parentRect.left
+
     setTooltipPos({
-      top: rect.top - parentRect.top - 40 + previewRef.current.scrollTop,
-      left: Math.min(rect.left - parentRect.left + rect.width / 2, parentRect.width - 200),
+      top: relTop - 40,
+      left: Math.min(relLeft + rect.width / 2, parentRect.width - 200),
     })
+
+    // Save selection rect for asking overlay in preview mode
+    setPreviewSelRect({
+      top: relTop,
+      left: relLeft,
+      width: rect.width,
+      height: rect.height,
+    })
+
     setShowTooltip(true)
   }, [form.content])
 
@@ -528,6 +549,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     } finally {
       setIsStreaming(false)
       setAskingRange(null)
+      setPreviewSelRect(null)
       inputRef.current?.focus()
     }
   }, [isStreaming, messages, form.title, form.description, form.tags, selectionRange, streamResponse])
@@ -601,10 +623,127 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     }, 0)
   }, [form.content])
 
+  // Stage image locally (blob URL preview, upload deferred to save)
+  const stageImage = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setToast({ message: 'Only image files are allowed', type: 'error' })
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setToast({ message: 'Image must be under 10MB', type: 'error' })
+      return
+    }
+
+    const blobUrl = URL.createObjectURL(file)
+    pendingImagesRef.current.set(blobUrl, file)
+
+    const alt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
+    const markdown = `![${alt}](${blobUrl})`
+
+    // Insert at saved cursor position
+    const pos = cursorPosRef.current
+    const before = form.content.substring(0, pos)
+    const after = form.content.substring(pos)
+    const separator = before.endsWith('\n') || before === '' ? '' : '\n\n'
+    setForm(f => ({ ...f, content: before + separator + markdown + '\n' + after }))
+    setToast({ message: 'Image added! Will upload on save.', type: 'success' })
+
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }, [form.content])
+
+  // Upload all pending images to Cloudinary, replace blob URLs with CDN URLs
+  const uploadPendingImages = useCallback(async (content: string): Promise<string> => {
+    const pending = pendingImagesRef.current
+    if (pending.size === 0) return content
+
+    // Only upload images still referenced in content
+    const toUpload = Array.from(pending.entries()).filter(([blobUrl]) => content.includes(blobUrl))
+    if (toUpload.length === 0) {
+      // Clean up unused blob URLs
+      Array.from(pending.keys()).forEach(url => URL.revokeObjectURL(url))
+      pending.clear()
+      return content
+    }
+
+    let updated = content
+    for (const [blobUrl, file] of toUpload) {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', 'lxqdss4t')
+      formData.append('folder', 'blog')
+
+      const res = await fetch('https://api.cloudinary.com/v1_1/dpust3pte/image/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      if (!res.ok) throw new Error(`Failed to upload image: ${file.name}`)
+      const data = await res.json()
+      const cdnUrl = data.secure_url as string
+
+      updated = updated.split(blobUrl).join(cdnUrl)
+      URL.revokeObjectURL(blobUrl)
+      pending.delete(blobUrl)
+    }
+
+    // Clean up any remaining unused blob URLs
+    Array.from(pending.keys()).forEach(url => URL.revokeObjectURL(url))
+    pending.clear()
+
+    return updated
+  }, [])
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) stageImage(file)
+  }, [stageImage])
+
+  // Paste image handler
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        const textarea = textareaRef.current
+        cursorPosRef.current = textarea ? textarea.selectionStart : form.content.length
+        const file = item.getAsFile()
+        if (file) stageImage(file)
+        return
+      }
+    }
+  }, [stageImage, form.content])
+
+  // Drop image handler
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    const file = e.dataTransfer?.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      e.preventDefault()
+      const textarea = textareaRef.current
+      cursorPosRef.current = textarea ? textarea.selectionStart : form.content.length
+      stageImage(file)
+    }
+  }, [stageImage, form.content])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer?.types?.includes('Files')) {
+      e.preventDefault()
+    }
+  }, [])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     try {
+      // Upload pending images to CDN first
+      let finalContent = form.content
+      if (pendingImagesRef.current.size > 0) {
+        setUploading(true)
+        setToast({ message: 'Uploading images...', type: 'success' })
+        finalContent = await uploadPendingImages(form.content)
+        setForm(f => ({ ...f, content: finalContent }))
+        setUploading(false)
+      }
+
       const url = post?.id
         ? `/api/admin/${isNote ? 'notes' : 'posts'}/${post.id}`
         : `/api/admin/${isNote ? 'notes' : 'posts'}`
@@ -612,7 +751,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, content: finalContent }),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -700,7 +839,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={loading || !!rewrite?.active} className="admin-btn admin-btn-primary">
-            {loading ? 'Saving...' : post?.id ? 'Save Changes' : 'Create'}
+            {uploading ? 'Uploading images...' : loading ? 'Saving...' : post?.id ? 'Save Changes' : 'Create'}
           </button>
         </div>
       </div>
@@ -769,6 +908,38 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                     <button type="button" className="pe-toolbar-btn" onClick={() => insertMarkdown('```\n', '\n```')} title="Code block">
                       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 4L1 8l4 4M11 4l4 4-4 4"/></svg>
                     </button>
+                    <div className="pe-toolbar-sep" />
+                    <button
+                      type="button"
+                      className="pe-toolbar-btn"
+                      onClick={() => {
+                        // Save cursor position before file dialog steals focus
+                        const textarea = textareaRef.current
+                        cursorPosRef.current = textarea ? textarea.selectionStart : form.content.length
+                        fileInputRef.current?.click()
+                      }}
+                      disabled={uploading}
+                      title="Upload image"
+                    >
+                      {uploading ? (
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="pe-spin">
+                          <path d="M8 1v3M8 12v3M1 8h3M12 8h3" strokeLinecap="round"/>
+                        </svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/>
+                          <circle cx="5" cy="6" r="1.5"/>
+                          <path d="M1.5 11l3.5-3.5L8 10.5l2.5-3L14.5 13" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      style={{ display: 'none' }}
+                    />
                   </>
                 )}
                 {rewrite?.active && (
@@ -805,13 +976,31 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                 /* Preview pane */
                 <div className="pe-preview" ref={previewRef} onMouseUp={handlePreviewSelect}>
                   {form.content.trim() ? (
-                    <MarkdownRenderer content={form.content} />
+                    <MarkdownRenderer content={form.content} allowBlobUrls />
                   ) : (
                     <p className="pe-preview-empty">Nothing to preview yet. Switch to Write and add some content.</p>
                   )}
 
+                  {/* Asking overlay in preview mode */}
+                  {showAskingOverlay && previewSelRect && (
+                    <div
+                      className="pe-rewrite-overlay pe-rewrite-overlay--asking"
+                      style={{
+                        top: previewSelRect.top,
+                        left: previewSelRect.left,
+                        width: previewSelRect.width,
+                        height: previewSelRect.height,
+                      }}
+                    >
+                      <div className="pe-overlay-badge">
+                        <span className="pe-overlay-badge-dot" />
+                        <span>Claw&rsquo;d is thinking...</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Tooltip in preview mode */}
-                  {showTooltip && selectedText && (
+                  {showTooltip && selectedText && !showRewritePrompt && (
                     <div
                       className="pe-tooltip"
                       style={{ top: tooltipPos.top, left: Math.max(0, tooltipPos.left) }}
@@ -840,6 +1029,15 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                       )}
                     </div>
                   )}
+
+                  {/* Rewrite prompt in preview mode */}
+                  {showRewritePrompt && selectionRange && (
+                    <RewritePrompt
+                      position={{ top: tooltipPos.top + 36, left: Math.max(0, tooltipPos.left) }}
+                      onSubmit={handleRewriteSubmit}
+                      onCancel={() => setShowRewritePrompt(false)}
+                    />
+                  )}
                 </div>
               ) : (
                 <>
@@ -854,6 +1052,9 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
                     }}
                     onMouseUp={handleTextSelect}
                     onKeyUp={handleTextSelect}
+                    onPaste={handlePaste}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
                     className={`pe-textarea${rewrite?.active ? ' pe-textarea--rewriting' : ''}`}
                     readOnly={!!rewrite?.active}
                     placeholder="# Title&#10;&#10;Write your content in Markdown..."
