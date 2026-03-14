@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
-    const { title, content, description, icon, tags, category, type, published, featured } = data
+    const { title, content, description, thumbnail, icon, tags, category, type, published, featured, series, seriesOrder } = data
 
     let slug = data.slug || slugify(title)
 
@@ -67,12 +67,15 @@ export async function POST(request: NextRequest) {
         slug,
         content: content || '',
         description: description || null,
+        thumbnail: thumbnail || null,
         icon: icon || null,
         tags: Array.isArray(tags) ? tags : (tags ? String(tags).split(',').map((t: string) => t.trim()).filter(Boolean) : []),
         category: category || 'technical',
         type: type || 'post',
         published: published || false,
         featured: featured || false,
+        series: series || null,
+        seriesOrder: seriesOrder != null ? parseInt(seriesOrder) : null,
       },
     })
 

@@ -20,12 +20,15 @@ model Post {
   slug        String   @unique
   content     String   @db.Text
   description String?
+  thumbnail   String?
   icon        String?
   tags        String[]
   category    String   @default("technical")
   type        String   @default("post")
   published   Boolean  @default(false)
   featured    Boolean  @default(false)
+  series      String?
+  seriesOrder Int?     @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -135,7 +138,7 @@ model SiteSettings {
   email      String   @default("")
   bluesky    String   @default("")
   rssEnabled Boolean  @default(true)
-  // Section visibility & ordering
+  // Homepage section visibility & ordering
   showExperience  Boolean @default(true)
   showBlog        Boolean @default(true)
   showNotes       Boolean @default(true)
@@ -146,6 +149,19 @@ model SiteSettings {
   orderNotes      Int     @default(2)
   orderSkills     Int     @default(3)
   orderProjects   Int     @default(4)
+  // Sidebar navigation visibility & ordering
+  navExperience   Boolean @default(true)
+  navBlog         Boolean @default(true)
+  navNotes        Boolean @default(true)
+  navSkills       Boolean @default(true)
+  navProjects     Boolean @default(true)
+  navAbout        Boolean @default(true)
+  navOrderExperience Int  @default(0)
+  navOrderBlog       Int  @default(1)
+  navOrderNotes      Int  @default(2)
+  navOrderSkills     Int  @default(3)
+  navOrderProjects   Int  @default(4)
+  navOrderAbout      Int  @default(5)
   updatedAt  DateTime @updatedAt
 }
 

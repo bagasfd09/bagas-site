@@ -30,7 +30,7 @@ export async function PUT(
   try {
     const { id } = await params
     const data = await request.json()
-    const { title, slug: rawSlug, content, description, icon, tags, category, type, published, featured } = data
+    const { title, slug: rawSlug, content, description, thumbnail, icon, tags, category, type, published, featured, series, seriesOrder } = data
 
     const slug = rawSlug || slugify(title)
 
@@ -49,12 +49,15 @@ export async function PUT(
         slug,
         content: content || '',
         description: description || null,
+        thumbnail: thumbnail || null,
         icon: icon || null,
         tags: Array.isArray(tags) ? tags : (tags ? String(tags).split(',').map((t: string) => t.trim()).filter(Boolean) : []),
         category: category || 'technical',
         type: type || 'post',
         published: published ?? false,
         featured: featured ?? false,
+        series: series || null,
+        seriesOrder: seriesOrder != null ? parseInt(seriesOrder) : null,
       },
     })
 

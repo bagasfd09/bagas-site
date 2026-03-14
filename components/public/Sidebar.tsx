@@ -15,11 +15,25 @@ interface SiteSettings {
   email: string
   bluesky: string
   rssEnabled: boolean
+  // Legacy show* fields (still used as fallback)
   showExperience?: boolean
   showBlog?: boolean
   showNotes?: boolean
   showSkills?: boolean
   showProjects?: boolean
+  // Sidebar-specific nav fields
+  navExperience?: boolean
+  navBlog?: boolean
+  navNotes?: boolean
+  navSkills?: boolean
+  navProjects?: boolean
+  navAbout?: boolean
+  navOrderExperience?: number
+  navOrderBlog?: number
+  navOrderNotes?: number
+  navOrderSkills?: number
+  navOrderProjects?: number
+  navOrderAbout?: number
 }
 
 interface SidebarProps {
@@ -27,14 +41,44 @@ interface SidebarProps {
 }
 
 function getNavLinks(settings: SiteSettings) {
-  const links: { href: string; label: string }[] = []
-  if (settings.showExperience !== false) links.push({ href: '/experience', label: 'Experience' })
-  if (settings.showBlog !== false) links.push({ href: '/blog', label: 'Blog' })
-  if (settings.showNotes !== false) links.push({ href: '/notes', label: 'Notes' })
-  if (settings.showSkills !== false) links.push({ href: '/skills', label: 'Skills' })
-  if (settings.showProjects !== false) links.push({ href: '/projects', label: 'Projects' })
-  links.push({ href: '/me', label: 'About Me' })
-  return links
+  // Use nav* fields if available, fallback to show* for backward compat
+  const items: { href: string; label: string; visible: boolean; order: number }[] = [
+    {
+      href: '/experience', label: 'Experience',
+      visible: settings.navExperience ?? settings.showExperience ?? true,
+      order: settings.navOrderExperience ?? 0,
+    },
+    {
+      href: '/blog', label: 'Blog',
+      visible: settings.navBlog ?? settings.showBlog ?? true,
+      order: settings.navOrderBlog ?? 1,
+    },
+    {
+      href: '/notes', label: 'Notes',
+      visible: settings.navNotes ?? settings.showNotes ?? true,
+      order: settings.navOrderNotes ?? 2,
+    },
+    {
+      href: '/skills', label: 'Skills',
+      visible: settings.navSkills ?? settings.showSkills ?? true,
+      order: settings.navOrderSkills ?? 3,
+    },
+    {
+      href: '/projects', label: 'Projects',
+      visible: settings.navProjects ?? settings.showProjects ?? true,
+      order: settings.navOrderProjects ?? 4,
+    },
+    {
+      href: '/me', label: 'About Me',
+      visible: settings.navAbout ?? true,
+      order: settings.navOrderAbout ?? 5,
+    },
+  ]
+
+  return items
+    .filter((item) => item.visible)
+    .sort((a, b) => a.order - b.order)
+    .map(({ href, label }) => ({ href, label }))
 }
 
 function SocialIcon({ type }: { type: string }) {

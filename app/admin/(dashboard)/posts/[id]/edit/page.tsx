@@ -20,6 +20,7 @@ export default async function EditPostPage({ params }: Props) {
         slug: post.slug,
         content: post.content,
         description: post.description || '',
+        thumbnail: post.thumbnail || '',
         icon: post.icon || '',
         tags: post.tags,
         category: post.category,
