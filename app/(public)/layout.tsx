@@ -2,47 +2,46 @@ import { prisma } from '@/lib/prisma'
 import Sidebar from '@/components/public/Sidebar'
 import PageTracker from '@/components/public/PageTracker'
 
+export const dynamic = 'force-dynamic'
+
+const DEFAULTS = {
+  name: 'Bagas',
+  siteName: 'bagas.dev',
+  sidebarBio:
+    "I'm Bagas, software developer and open-source enthusiast from Indonesia. This is my corner of the universe. 🚀",
+  github: 'https://github.com/bagas',
+  linkedin: 'https://linkedin.com/in/bagas',
+  twitter: 'https://twitter.com/bagas',
+  email: 'bagas@example.com',
+  bluesky: '',
+  rssEnabled: true,
+  showExperience: true,
+  showBlog: true,
+  showNotes: true,
+  showSkills: true,
+  showProjects: true,
+  navExperience: true,
+  navBlog: true,
+  navNotes: true,
+  navSkills: true,
+  navProjects: true,
+  navAbout: true,
+  navOrderExperience: 0,
+  navOrderBlog: 1,
+  navOrderNotes: 2,
+  navOrderSkills: 3,
+  navOrderProjects: 4,
+  navOrderAbout: 5,
+}
+
 async function getSettings() {
   try {
     const settings = await prisma.siteSettings.findUnique({
       where: { id: 'main' },
     })
-    const defaults = {
-      name: 'Bagas',
-      siteName: 'bagas.dev',
-      sidebarBio:
-        "I'm Bagas, software developer and open-source enthusiast from Indonesia. This is my corner of the universe. 🚀",
-      github: 'https://github.com/bagas',
-      linkedin: 'https://linkedin.com/in/bagas',
-      twitter: 'https://twitter.com/bagas',
-      email: 'bagas@example.com',
-      bluesky: '',
-      rssEnabled: true,
-      showExperience: true,
-      showBlog: true,
-      showNotes: true,
-      showSkills: true,
-      showProjects: true,
-    }
-    return settings || defaults
+    return settings || DEFAULTS
   } catch {
-    return {
-      name: 'Bagas',
-      siteName: 'bagas.dev',
-      sidebarBio:
-        "I'm Bagas, software developer and open-source enthusiast from Indonesia. This is my corner of the universe. 🚀",
-      github: 'https://github.com/bagas',
-      linkedin: 'https://linkedin.com/in/bagas',
-      twitter: 'https://twitter.com/bagas',
-      email: 'bagas@example.com',
-      bluesky: '',
-      rssEnabled: true,
-      showExperience: true,
-      showBlog: true,
-      showNotes: true,
-      showSkills: true,
-      showProjects: true,
-    }
+    return DEFAULTS
   }
 }
 
