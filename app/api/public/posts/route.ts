@@ -7,14 +7,19 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const typeParam = searchParams.get('type') || 'post'
+    const seriesParam = searchParams.get('series')
 
     // Support comma-separated types, e.g. type=post,deep-dive
     const types = typeParam.split(',').map((t) => t.trim())
 
-    const where =
+    const where: Record<string, unknown> =
       types.length === 1
         ? { type: types[0], published: true }
         : { type: { in: types }, published: true }
+
+    if (seriesParam) {
+      where.series = seriesParam
+    }
 
     const posts = await prisma.post.findMany({
       where,
@@ -24,9 +29,13 @@ export async function GET(request: NextRequest) {
         title: true,
         slug: true,
         description: true,
+        thumbnail: true,
         tags: true,
         category: true,
         type: true,
+        featured: true,
+        series: true,
+        seriesOrder: true,
         createdAt: true,
       },
     })

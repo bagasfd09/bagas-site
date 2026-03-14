@@ -14,11 +14,9 @@ import {
   FolderKanban,
   Rss,
   Save,
-  GripVertical,
-  ChevronUp,
-  ChevronDown,
 } from 'lucide-react'
 import Toast from '@/components/admin/Toast'
+import DraggableOrderList from '@/components/admin/DraggableOrderList'
 
 interface Settings {
   name: string
@@ -45,6 +43,18 @@ interface Settings {
   orderNotes: number
   orderSkills: number
   orderProjects: number
+  navExperience: boolean
+  navBlog: boolean
+  navNotes: boolean
+  navSkills: boolean
+  navProjects: boolean
+  navAbout: boolean
+  navOrderExperience: number
+  navOrderBlog: number
+  navOrderNotes: number
+  navOrderSkills: number
+  navOrderProjects: number
+  navOrderAbout: number
 }
 
 const defaultSettings: Settings = {
@@ -72,6 +82,18 @@ const defaultSettings: Settings = {
   orderNotes: 2,
   orderSkills: 3,
   orderProjects: 4,
+  navExperience: true,
+  navBlog: true,
+  navNotes: true,
+  navSkills: true,
+  navProjects: true,
+  navAbout: true,
+  navOrderExperience: 0,
+  navOrderBlog: 1,
+  navOrderNotes: 2,
+  navOrderSkills: 3,
+  navOrderProjects: 4,
+  navOrderAbout: 5,
 }
 
 type TabKey = 'general' | 'homepage' | 'social' | 'sections'
@@ -254,6 +276,18 @@ export default function SettingsPage() {
           orderNotes: data.orderNotes ?? 2,
           orderSkills: data.orderSkills ?? 3,
           orderProjects: data.orderProjects ?? 4,
+          navExperience: data.navExperience ?? true,
+          navBlog: data.navBlog ?? true,
+          navNotes: data.navNotes ?? true,
+          navSkills: data.navSkills ?? true,
+          navProjects: data.navProjects ?? true,
+          navAbout: data.navAbout ?? true,
+          navOrderExperience: data.navOrderExperience ?? 0,
+          navOrderBlog: data.navOrderBlog ?? 1,
+          navOrderNotes: data.navOrderNotes ?? 2,
+          navOrderSkills: data.navOrderSkills ?? 3,
+          navOrderProjects: data.navOrderProjects ?? 4,
+          navOrderAbout: data.navOrderAbout ?? 5,
         }
         setForm(s)
         setOriginal(s)
@@ -520,172 +554,100 @@ export default function SettingsPage() {
         )}
 
         {/* Sections tab */}
-        {activeTab === 'sections' && (
+        {activeTab === 'sections' && (<>
           <SectionCard
             title="Homepage Sections"
             desc="Toggle visibility and drag to reorder sections on the homepage."
             icon={ToggleLeft}
           >
-            {(() => {
-              type SectionKey = 'experience' | 'blog' | 'notes' | 'skills' | 'projects'
-              const sectionDefs: { key: SectionKey; label: string; desc: string; icon: typeof Globe; showField: keyof Settings; orderField: keyof Settings }[] = [
-                { key: 'experience', label: 'Experience', desc: 'Work history timeline', icon: Briefcase, showField: 'showExperience', orderField: 'orderExperience' },
-                { key: 'blog', label: 'Blog', desc: 'Personal essays and articles', icon: FileText, showField: 'showBlog', orderField: 'orderBlog' },
-                { key: 'notes', label: 'Notes', desc: 'Guides and tutorials', icon: StickyNote, showField: 'showNotes', orderField: 'orderNotes' },
-                { key: 'skills', label: 'Skills', desc: 'Technologies and tools', icon: Cpu, showField: 'showSkills', orderField: 'orderSkills' },
-                { key: 'projects', label: 'Projects', desc: 'Open-source projects', icon: FolderKanban, showField: 'showProjects', orderField: 'orderProjects' },
-              ]
-
-              const sorted = [...sectionDefs].sort(
-                (a, b) => (form[a.orderField] as number) - (form[b.orderField] as number)
-              )
-
-              function moveSection(index: number, direction: 'up' | 'down') {
-                const target = direction === 'up' ? index - 1 : index + 1
-                if (target < 0 || target >= sorted.length) return
+            <DraggableOrderList
+              items={(() => {
+                const defs = [
+                  { key: 'experience', label: 'Experience', desc: 'Work history timeline', icon: Briefcase, showField: 'showExperience' as keyof Settings, orderField: 'orderExperience' as keyof Settings },
+                  { key: 'blog', label: 'Blog', desc: 'Personal essays and articles', icon: FileText, showField: 'showBlog' as keyof Settings, orderField: 'orderBlog' as keyof Settings },
+                  { key: 'notes', label: 'Notes', desc: 'Guides and tutorials', icon: StickyNote, showField: 'showNotes' as keyof Settings, orderField: 'orderNotes' as keyof Settings },
+                  { key: 'skills', label: 'Skills', desc: 'Technologies and tools', icon: Cpu, showField: 'showSkills' as keyof Settings, orderField: 'orderSkills' as keyof Settings },
+                  { key: 'projects', label: 'Projects', desc: 'Open-source projects', icon: FolderKanban, showField: 'showProjects' as keyof Settings, orderField: 'orderProjects' as keyof Settings },
+                ]
+                return [...defs]
+                  .sort((a, b) => (form[a.orderField] as number) - (form[b.orderField] as number))
+                  .map((d) => ({
+                    key: d.key,
+                    label: d.label,
+                    desc: d.desc,
+                    icon: d.icon,
+                    checked: form[d.showField] as boolean,
+                    onToggle: () => updateForm({ [d.showField]: !(form[d.showField] as boolean) }),
+                  }))
+              })()}
+              onReorder={(from, to) => {
+                const defs = [
+                  { key: 'experience', orderField: 'orderExperience' as keyof Settings },
+                  { key: 'blog', orderField: 'orderBlog' as keyof Settings },
+                  { key: 'notes', orderField: 'orderNotes' as keyof Settings },
+                  { key: 'skills', orderField: 'orderSkills' as keyof Settings },
+                  { key: 'projects', orderField: 'orderProjects' as keyof Settings },
+                ]
+                const sorted = [...defs].sort((a, b) => (form[a.orderField] as number) - (form[b.orderField] as number))
+                const reordered = [...sorted]
+                const [moved] = reordered.splice(from, 1)
+                reordered.splice(to, 0, moved)
                 const updates: Partial<Settings> = {}
-                // Swap order values
-                const currentItem = sorted[index]
-                const targetItem = sorted[target]
-                const currentOrder = form[currentItem.orderField] as number
-                const targetOrder = form[targetItem.orderField] as number
-                updates[currentItem.orderField as keyof Settings] = targetOrder as never
-                updates[targetItem.orderField as keyof Settings] = currentOrder as never
+                reordered.forEach((item, i) => {
+                  updates[item.orderField as keyof Settings] = i as never
+                })
                 updateForm(updates)
-              }
-
-              return sorted.map((section, index) => {
-                const Icon = section.icon
-                const checked = form[section.showField] as boolean
-                return (
-                  <div
-                    key={section.key}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px 14px',
-                      borderRadius: '10px',
-                      border: `1px solid ${checked ? 'var(--admin-accent)' : 'var(--admin-border)'}`,
-                      background: checked ? 'rgba(88,166,255,0.04)' : 'transparent',
-                      opacity: checked ? 1 : 0.6,
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {/* Order controls */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0 }}>
-                      <button
-                        type="button"
-                        onClick={() => moveSection(index, 'up')}
-                        disabled={index === 0}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: index === 0 ? 'default' : 'pointer',
-                          padding: '1px',
-                          color: index === 0 ? 'var(--admin-border)' : 'var(--admin-text-muted)',
-                          lineHeight: 0,
-                        }}
-                      >
-                        <ChevronUp size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveSection(index, 'down')}
-                        disabled={index === sorted.length - 1}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: index === sorted.length - 1 ? 'default' : 'pointer',
-                          padding: '1px',
-                          color: index === sorted.length - 1 ? 'var(--admin-border)' : 'var(--admin-text-muted)',
-                          lineHeight: 0,
-                        }}
-                      >
-                        <ChevronDown size={14} />
-                      </button>
-                    </div>
-
-                    {/* Grip icon */}
-                    <GripVertical size={16} style={{ color: 'var(--admin-text-muted)', opacity: 0.4, flexShrink: 0 }} />
-
-                    {/* Order number */}
-                    <span style={{
-                      width: '22px',
-                      height: '22px',
-                      borderRadius: '6px',
-                      background: checked ? 'var(--admin-accent)' : 'var(--admin-border)',
-                      color: checked ? '#fff' : 'var(--admin-text-muted)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      flexShrink: 0,
-                    }}>
-                      {index + 1}
-                    </span>
-
-                    {/* Icon */}
-                    <div
-                      style={{
-                        width: '34px',
-                        height: '34px',
-                        borderRadius: '8px',
-                        background: checked ? 'rgba(88,166,255,0.1)' : 'var(--admin-bg)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon size={16} style={{ color: checked ? 'var(--admin-accent)' : 'var(--admin-text-muted)' }} />
-                    </div>
-
-                    {/* Label + desc */}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--admin-text-primary)' }}>
-                        {section.label}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--admin-text-muted)', marginTop: '1px' }}>
-                        {section.desc}
-                      </div>
-                    </div>
-
-                    {/* Toggle */}
-                    <div
-                      onClick={() => updateForm({ [section.showField]: !checked })}
-                      style={{
-                        width: '42px',
-                        height: '24px',
-                        borderRadius: '12px',
-                        background: checked ? 'var(--admin-accent)' : 'var(--admin-border)',
-                        position: 'relative',
-                        cursor: 'pointer',
-                        transition: 'background 0.2s ease',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          background: '#fff',
-                          position: 'absolute',
-                          top: '3px',
-                          left: checked ? '21px' : '3px',
-                          transition: 'left 0.2s ease',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-                        }}
-                      />
-                    </div>
-                  </div>
-                )
-              })
-            })()}
+              }}
+            />
           </SectionCard>
-        )}
+
+          <SectionCard
+            title="Sidebar Navigation"
+            desc="Toggle visibility and drag to reorder links in the public site sidebar."
+            icon={Layout}
+          >
+            <DraggableOrderList
+              items={(() => {
+                const defs = [
+                  { key: 'experience', label: 'Experience', icon: Briefcase, navField: 'navExperience' as keyof Settings, orderField: 'navOrderExperience' as keyof Settings },
+                  { key: 'blog', label: 'Blog', icon: FileText, navField: 'navBlog' as keyof Settings, orderField: 'navOrderBlog' as keyof Settings },
+                  { key: 'notes', label: 'Notes', icon: StickyNote, navField: 'navNotes' as keyof Settings, orderField: 'navOrderNotes' as keyof Settings },
+                  { key: 'skills', label: 'Skills', icon: Cpu, navField: 'navSkills' as keyof Settings, orderField: 'navOrderSkills' as keyof Settings },
+                  { key: 'projects', label: 'Projects', icon: FolderKanban, navField: 'navProjects' as keyof Settings, orderField: 'navOrderProjects' as keyof Settings },
+                  { key: 'about', label: 'About Me', icon: User, navField: 'navAbout' as keyof Settings, orderField: 'navOrderAbout' as keyof Settings },
+                ]
+                return [...defs]
+                  .sort((a, b) => (form[a.orderField] as number) - (form[b.orderField] as number))
+                  .map((d) => ({
+                    key: d.key,
+                    label: d.label,
+                    icon: d.icon,
+                    checked: form[d.navField] as boolean,
+                    onToggle: () => updateForm({ [d.navField]: !(form[d.navField] as boolean) }),
+                  }))
+              })()}
+              onReorder={(from, to) => {
+                const defs = [
+                  { key: 'experience', orderField: 'navOrderExperience' as keyof Settings },
+                  { key: 'blog', orderField: 'navOrderBlog' as keyof Settings },
+                  { key: 'notes', orderField: 'navOrderNotes' as keyof Settings },
+                  { key: 'skills', orderField: 'navOrderSkills' as keyof Settings },
+                  { key: 'projects', orderField: 'navOrderProjects' as keyof Settings },
+                  { key: 'about', orderField: 'navOrderAbout' as keyof Settings },
+                ]
+                const sorted = [...defs].sort((a, b) => (form[a.orderField] as number) - (form[b.orderField] as number))
+                const reordered = [...sorted]
+                const [moved] = reordered.splice(from, 1)
+                reordered.splice(to, 0, moved)
+                const updates: Partial<Settings> = {}
+                reordered.forEach((item, i) => {
+                  updates[item.orderField as keyof Settings] = i as never
+                })
+                updateForm(updates)
+              }}
+            />
+          </SectionCard>
+        </>)}
 
         {/* Social tab */}
         {activeTab === 'social' && (

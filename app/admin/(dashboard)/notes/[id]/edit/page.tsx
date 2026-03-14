@@ -20,6 +20,7 @@ export default async function EditNotePage({ params }: Props) {
         slug: note.slug,
         content: note.content,
         description: note.description || '',
+        thumbnail: note.thumbnail || '',
         icon: note.icon || '',
         tags: note.tags,
         category: note.category,

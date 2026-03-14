@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import ProjectCard from '@/components/public/ProjectCard'
 import PostRowList from '@/components/public/PostRowList'
+import BlogMagazine from '@/components/public/BlogMagazine'
 import SkillsGrid from '@/components/public/SkillsGrid'
 import AnimateIn from '@/components/public/AnimateIn'
 import AlienEyes from '@/components/public/AlienEyes'
@@ -26,7 +27,7 @@ async function getData() {
       where: { type: 'post', published: true },
       orderBy: { createdAt: 'desc' },
       take: 5,
-      select: { id: true, title: true, slug: true, type: true, tags: true, createdAt: true },
+      select: { id: true, title: true, slug: true, type: true, tags: true, description: true, thumbnail: true, featured: true, createdAt: true },
     }),
     prisma.post.findMany({
       where: { type: 'note', published: true },
@@ -121,7 +122,7 @@ export default async function HomePage() {
         <AnimateIn as="section" className="mb-14" animation="fade-up" key="blog">
           <h2 className="section-heading">Blog</h2>
           <p className="section-subtitle">Personal essays and technical thoughts.</p>
-          <PostRowList posts={blogPosts} />
+          <BlogMagazine posts={blogPosts} />
           <div className="mt-4">
             <Link href="/blog" className="view-all-link">
               All posts <span className="view-all-arrow">&rarr;</span>

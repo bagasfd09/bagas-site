@@ -1,7 +1,9 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import rehypeSlug from 'rehype-slug'
 import 'highlight.js/styles/github.css'
+import CodeCopyButton from './CodeCopyButton'
 
 interface MarkdownRendererProps {
   content: string
@@ -25,8 +27,43 @@ export default function MarkdownRenderer({ content, className, allowBlobUrls }: 
     <div className={`prose ${className || ''}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight]}
+        rehypePlugins={[rehypeHighlight, rehypeSlug]}
         urlTransform={allowBlobUrls ? allowBlobUrlTransform : undefined}
+        components={{
+          img: ({ src, alt, ...props }) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={src}
+              alt={alt || ''}
+              loading="lazy"
+              decoding="async"
+              {...props}
+            />
+          ),
+          pre: ({ children, ...props }) => {
+            // Extract text content for copy button
+            const getTextContent = (node: React.ReactNode): string => {
+              if (typeof node === 'string') return node
+              if (Array.isArray(node)) return node.map(getTextContent).join('')
+              if (node && typeof node === 'object' && 'props' in node) {
+                return getTextContent((node as React.ReactElement).props.children)
+              }
+              return ''
+            }
+            const code = getTextContent(children)
+            return (
+              <div className="code-block-wrapper">
+                <pre {...props}>{children}</pre>
+                <CodeCopyButton code={code} />
+              </div>
+            )
+          },
+          blockquote: ({ children, ...props }) => (
+            <blockquote className="article-blockquote" {...props}>
+              {children}
+            </blockquote>
+          ),
+        }}
       >
         {content}
       </ReactMarkdown>

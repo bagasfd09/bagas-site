@@ -61,7 +61,7 @@ export default async function PublicLayout({
       {/* Main content - offset by sidebar width on desktop, top bar on mobile */}
       <main
         className="md:ml-[300px] pt-14 md:pt-0 min-h-screen"
-        style={{ backgroundColor: 'var(--bg)' }}
+        style={{ backgroundColor: 'var(--content-bg)' }}
       >
         <div className="max-w-[740px] mx-auto px-6 py-10 md:py-14">
           {children}
