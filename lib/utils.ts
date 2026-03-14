@@ -26,7 +26,7 @@ export function formatDateShort(date: Date | string): string {
   })
 }
 
-export function getYear(date: Date | string): number {
+function getYear(date: Date | string): number {
   const d = typeof date === 'string' ? new Date(date) : date
   return d.getFullYear()
 }
