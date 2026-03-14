@@ -9,7 +9,6 @@ import {
   ToggleLeft,
   Briefcase,
   FileText,
-  StickyNote,
   Cpu,
   FolderKanban,
   Rss,
@@ -565,7 +564,6 @@ export default function SettingsPage() {
                 const defs = [
                   { key: 'experience', label: 'Experience', desc: 'Work history timeline', icon: Briefcase, showField: 'showExperience' as keyof Settings, orderField: 'orderExperience' as keyof Settings },
                   { key: 'blog', label: 'Blog', desc: 'Personal essays and articles', icon: FileText, showField: 'showBlog' as keyof Settings, orderField: 'orderBlog' as keyof Settings },
-                  { key: 'notes', label: 'Notes', desc: 'Guides and tutorials', icon: StickyNote, showField: 'showNotes' as keyof Settings, orderField: 'orderNotes' as keyof Settings },
                   { key: 'skills', label: 'Skills', desc: 'Technologies and tools', icon: Cpu, showField: 'showSkills' as keyof Settings, orderField: 'orderSkills' as keyof Settings },
                   { key: 'projects', label: 'Projects', desc: 'Open-source projects', icon: FolderKanban, showField: 'showProjects' as keyof Settings, orderField: 'orderProjects' as keyof Settings },
                 ]
@@ -584,7 +582,6 @@ export default function SettingsPage() {
                 const defs = [
                   { key: 'experience', orderField: 'orderExperience' as keyof Settings },
                   { key: 'blog', orderField: 'orderBlog' as keyof Settings },
-                  { key: 'notes', orderField: 'orderNotes' as keyof Settings },
                   { key: 'skills', orderField: 'orderSkills' as keyof Settings },
                   { key: 'projects', orderField: 'orderProjects' as keyof Settings },
                 ]
@@ -611,7 +608,6 @@ export default function SettingsPage() {
                 const defs = [
                   { key: 'experience', label: 'Experience', icon: Briefcase, navField: 'navExperience' as keyof Settings, orderField: 'navOrderExperience' as keyof Settings },
                   { key: 'blog', label: 'Blog', icon: FileText, navField: 'navBlog' as keyof Settings, orderField: 'navOrderBlog' as keyof Settings },
-                  { key: 'notes', label: 'Notes', icon: StickyNote, navField: 'navNotes' as keyof Settings, orderField: 'navOrderNotes' as keyof Settings },
                   { key: 'skills', label: 'Skills', icon: Cpu, navField: 'navSkills' as keyof Settings, orderField: 'navOrderSkills' as keyof Settings },
                   { key: 'projects', label: 'Projects', icon: FolderKanban, navField: 'navProjects' as keyof Settings, orderField: 'navOrderProjects' as keyof Settings },
                   { key: 'about', label: 'About Me', icon: User, navField: 'navAbout' as keyof Settings, orderField: 'navOrderAbout' as keyof Settings },
@@ -630,7 +626,6 @@ export default function SettingsPage() {
                 const defs = [
                   { key: 'experience', orderField: 'navOrderExperience' as keyof Settings },
                   { key: 'blog', orderField: 'navOrderBlog' as keyof Settings },
-                  { key: 'notes', orderField: 'navOrderNotes' as keyof Settings },
                   { key: 'skills', orderField: 'navOrderSkills' as keyof Settings },
                   { key: 'projects', orderField: 'navOrderProjects' as keyof Settings },
                   { key: 'about', orderField: 'navOrderAbout' as keyof Settings },

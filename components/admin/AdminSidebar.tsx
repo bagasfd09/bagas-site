@@ -6,7 +6,6 @@ import { useState } from 'react'
 import {
   LayoutDashboard,
   FileText,
-  StickyNote,
   Cpu,
   Briefcase,
   FolderKanban,
@@ -25,7 +24,6 @@ import { useAdminTheme } from './AdminThemeProvider'
 const mainNav = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { href: '/admin/posts', label: 'Posts', icon: FileText },
-  { href: '/admin/notes', label: 'Notes', icon: StickyNote },
   { href: '/admin/skills', label: 'Skills', icon: Cpu },
   { href: '/admin/experiences', label: 'Experiences', icon: Briefcase },
   { href: '/admin/projects', label: 'Projects', icon: FolderKanban },

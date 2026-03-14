@@ -94,7 +94,7 @@ function hasSuggestBlocks(text: string): boolean {
 
 export default function PostForm({ post, type = 'post' }: PostFormProps) {
   const router = useRouter()
-  const isNote = type === 'note'
+  const isNote = false // Notes removed — all content is posts
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 

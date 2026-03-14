@@ -2,7 +2,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import ProjectCard from '@/components/public/ProjectCard'
-import PostRowList from '@/components/public/PostRowList'
 import BlogMagazine from '@/components/public/BlogMagazine'
 import SkillsGrid from '@/components/public/SkillsGrid'
 import AnimateIn from '@/components/public/AnimateIn'
@@ -21,19 +20,13 @@ export const metadata: Metadata = {
 }
 
 async function getData() {
-  const [settings, blogPosts, notes, skills, projects, experiences] = await Promise.all([
+  const [settings, blogPosts, skills, projects, experiences] = await Promise.all([
     prisma.siteSettings.findUnique({ where: { id: 'main' } }),
     prisma.post.findMany({
       where: { type: 'post', published: true },
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: { id: true, title: true, slug: true, type: true, tags: true, description: true, thumbnail: true, featured: true, createdAt: true },
-    }),
-    prisma.post.findMany({
-      where: { type: 'note', published: true },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-      select: { id: true, title: true, slug: true, type: true, tags: true, createdAt: true },
     }),
     prisma.skill.findMany({
       where: { featured: true },
@@ -79,11 +72,11 @@ async function getData() {
     }),
   ])
 
-  return { settings, blogPosts, notes, skills, projects, experiences }
+  return { settings, blogPosts, skills, projects, experiences }
 }
 
 export default async function HomePage() {
-  const { settings, blogPosts, notes, skills, projects, experiences } = await getData()
+  const { settings, blogPosts, skills, projects, experiences } = await getData()
 
   const name = settings?.name || 'Bagas'
   const heroIntro =
@@ -97,7 +90,6 @@ export default async function HomePage() {
   const sectionConfig = [
     { key: 'experience', show: settings?.showExperience ?? true, order: settings?.orderExperience ?? 0 },
     { key: 'blog', show: settings?.showBlog ?? true, order: settings?.orderBlog ?? 1 },
-    { key: 'notes', show: settings?.showNotes ?? true, order: settings?.orderNotes ?? 2 },
     { key: 'skills', show: settings?.showSkills ?? true, order: settings?.orderSkills ?? 3 },
     { key: 'projects', show: settings?.showProjects ?? true, order: settings?.orderProjects ?? 4 },
   ].sort((a, b) => a.order - b.order)
@@ -126,19 +118,6 @@ export default async function HomePage() {
           <div className="mt-4">
             <Link href="/blog" className="view-all-link">
               All posts <span className="view-all-arrow">&rarr;</span>
-            </Link>
-          </div>
-        </AnimateIn>
-      ) : null,
-    notes: () =>
-      notes.length > 0 ? (
-        <AnimateIn as="section" className="mb-14" animation="fade-up" delay={80} key="notes">
-          <h2 className="section-heading">Notes</h2>
-          <p className="section-subtitle">Guides, references, and tutorials.</p>
-          <PostRowList posts={notes} />
-          <div className="mt-4">
-            <Link href="/notes" className="view-all-link">
-              All notes <span className="view-all-arrow">&rarr;</span>
             </Link>
           </div>
         </AnimateIn>

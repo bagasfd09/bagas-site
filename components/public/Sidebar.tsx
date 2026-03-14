@@ -54,11 +54,6 @@ function getNavLinks(settings: SiteSettings) {
       order: settings.navOrderBlog ?? 1,
     },
     {
-      href: '/notes', label: 'Notes',
-      visible: settings.navNotes ?? settings.showNotes ?? true,
-      order: settings.navOrderNotes ?? 2,
-    },
-    {
       href: '/skills', label: 'Skills',
       visible: settings.navSkills ?? settings.showSkills ?? true,
       order: settings.navOrderSkills ?? 3,
