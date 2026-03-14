@@ -8,9 +8,10 @@ interface EditorStatusBarProps {
   lastSavedAt: Date | null
   cursorLine?: number
   cursorCol?: number
+  onHelpClick?: () => void
 }
 
-export default function EditorStatusBar({ content, saveStatus, lastSavedAt, cursorLine, cursorCol }: EditorStatusBarProps) {
+export default function EditorStatusBar({ content, saveStatus, lastSavedAt, cursorLine, cursorCol, onHelpClick }: EditorStatusBarProps) {
   const wordCount = useMemo(() => {
     return content.replace(/[#*`\[\]()>-]/g, ' ').split(/\s+/).filter(Boolean).length
   }, [content])
@@ -49,6 +50,16 @@ export default function EditorStatusBar({ content, saveStatus, lastSavedAt, curs
           <span className="pe2-status-item">Ln {cursorLine}, Col {cursorCol}</span>
         )}
         <span className="pe2-status-item">Markdown</span>
+        {onHelpClick && (
+          <button type="button" onClick={onHelpClick} className="pe2-status-help" title="Editor shortcuts & tips">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+              <path d="M12 17h.01" />
+            </svg>
+            <span>Help</span>
+          </button>
+        )}
       </div>
     </div>
   )

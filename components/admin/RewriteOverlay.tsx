@@ -15,6 +15,76 @@ interface RewriteOverlayProps {
   mode?: OverlayMode
 }
 
+/**
+ * Measures the pixel position of a text range inside a textarea by creating
+ * a hidden mirror div that replicates the textarea's styling and content.
+ * This correctly handles word-wrapped proportional fonts.
+ */
+function measureTextareaRange(
+  textarea: HTMLTextAreaElement,
+  start: number,
+  end: number,
+): { top: number; height: number } | null {
+  const style = window.getComputedStyle(textarea)
+  const mirror = document.createElement('div')
+
+  // Copy all relevant styles
+  const props = [
+    'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'letterSpacing',
+    'lineHeight', 'textTransform', 'wordSpacing', 'textIndent',
+    'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+    'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+    'boxSizing', 'whiteSpace', 'wordWrap', 'overflowWrap', 'wordBreak',
+  ] as const
+
+  mirror.style.position = 'absolute'
+  mirror.style.visibility = 'hidden'
+  mirror.style.top = '0'
+  mirror.style.left = '0'
+  mirror.style.width = `${textarea.clientWidth}px`
+  mirror.style.overflow = 'hidden'
+
+  for (const prop of props) {
+    (mirror.style as unknown as Record<string, string>)[prop] = style[prop]
+  }
+
+  // Build content: text before selection + marker + selected text + marker
+  const content = textarea.value
+  const beforeText = content.substring(0, start)
+  const selectedText = content.substring(start, end)
+
+  // Create text nodes and marker spans
+  const beforeNode = document.createTextNode(beforeText)
+  const startMarker = document.createElement('span')
+  startMarker.id = '_overlay_start'
+  startMarker.textContent = '\u200b' // zero-width space
+  const selectedNode = document.createTextNode(selectedText)
+  const endMarker = document.createElement('span')
+  endMarker.id = '_overlay_end'
+  endMarker.textContent = '\u200b'
+  const afterNode = document.createTextNode(content.substring(end))
+
+  mirror.appendChild(beforeNode)
+  mirror.appendChild(startMarker)
+  mirror.appendChild(selectedNode)
+  mirror.appendChild(endMarker)
+  mirror.appendChild(afterNode)
+
+  document.body.appendChild(mirror)
+
+  const startRect = startMarker.getBoundingClientRect()
+  const endRect = endMarker.getBoundingClientRect()
+  const mirrorRect = mirror.getBoundingClientRect()
+
+  const top = startRect.top - mirrorRect.top
+  const bottom = endRect.bottom - mirrorRect.top
+  const height = bottom - top
+
+  document.body.removeChild(mirror)
+
+  return { top, height: Math.max(height, parseFloat(style.lineHeight) || 28) }
+}
+
 export default function RewriteOverlay({
   textareaRef,
   editorWrapRef,
@@ -31,24 +101,14 @@ export default function RewriteOverlay({
     const editorWrap = editorWrapRef.current
     if (!textarea || !editorWrap) return
 
+    const measured = measureTextareaRange(textarea, selectionStart, selectionEnd)
+    if (!measured) return
+
     const style = window.getComputedStyle(textarea)
-    const lineHeight = parseFloat(style.lineHeight) || 22
-    const paddingTop = parseFloat(style.paddingTop) || 0
     const paddingLeft = parseFloat(style.paddingLeft) || 0
-
-    // Count lines before selection start and end
-    const textBefore = originalContent.substring(0, selectionStart)
-    const textSelected = originalContent.substring(selectionStart, selectionEnd)
-    const linesBefore = textBefore.split('\n').length - 1
-    const linesInSelection = textSelected.split('\n').length
-
     const scrollTop = textarea.scrollTop
 
-    // Position relative to textarea's content area
-    const topInTextarea = paddingTop + (linesBefore * lineHeight) - scrollTop
-    const height = linesInSelection * lineHeight
-
-    // Get textarea position relative to .pe-editor-content
+    // Get textarea position relative to parent wrapper
     const textareaRect = textarea.getBoundingClientRect()
     const parentEl = textarea.parentElement
     const parentRect = (parentEl || editorWrap).getBoundingClientRect()
@@ -56,12 +116,12 @@ export default function RewriteOverlay({
     const offsetLeft = textareaRect.left - parentRect.left
 
     setRect({
-      top: offsetTop + topInTextarea,
-      height: Math.max(height, lineHeight),
+      top: offsetTop + measured.top - scrollTop,
+      height: measured.height,
       fullWidth: textarea.clientWidth - paddingLeft * 2,
       offsetLeft: offsetLeft + paddingLeft,
     })
-  }, [textareaRef, editorWrapRef, selectionStart, selectionEnd, originalContent])
+  }, [textareaRef, editorWrapRef, selectionStart, selectionEnd])
 
   useEffect(() => {
     computePosition()
@@ -110,7 +170,6 @@ export default function RewriteOverlay({
         height: rect.height,
       }}
     >
-      {/* Status badge */}
       {phase !== 'done' && (
         <div className="pe-overlay-badge">
           <span className="pe-overlay-badge-dot" />
@@ -118,7 +177,6 @@ export default function RewriteOverlay({
         </div>
       )}
 
-      {/* Success checkmark on done */}
       {phase === 'done' && !isAsking && (
         <div className="pe-overlay-done">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 8.5l3 3 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>

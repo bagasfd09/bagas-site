@@ -381,6 +381,22 @@
   color: #999;
 }
 
+.pe2-status-help {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(59,50,37,0.1);
+  background: none;
+  color: #b0a99e;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+}
+.pe2-status-help:hover { color: #b4762c; border-color: rgba(180,118,44,0.3); background: rgba(180,118,44,0.04); }
+
 /* ─── SETTINGS DRAWER ──────────────────────────────────────── */
 .pe2-drawer-overlay {
   position: fixed;
@@ -1048,9 +1064,349 @@
   white-space: pre-wrap;
 }
 
+/* ─── ONBOARDING BANNER ────────────────────────────────────── */
+.pe2-onboarding {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  background: linear-gradient(135deg, rgba(180,118,44,0.06), rgba(180,118,44,0.02));
+  border-bottom: 1px solid rgba(180,118,44,0.12);
+  flex-shrink: 0;
+  animation: pe2-onboarding-in 0.3s ease;
+}
+
+@keyframes pe2-onboarding-in {
+  from { opacity: 0; transform: translateY(-100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pe2-onboarding-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pe2-onboarding-icon { font-size: 16px; }
+
+.pe2-onboarding-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #3b3225;
+  line-height: 1.5;
+}
+.pe2-onboarding-text strong { font-weight: 600; font-size: 13px; }
+.pe2-onboarding-text span { color: #756b5e; }
+
+.pe2-onboarding-text kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(59,50,37,0.08);
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: #3b3225;
+  border: 1px solid rgba(59,50,37,0.1);
+}
+
+.pe2-onboarding-dismiss {
+  padding: 5px 14px;
+  border-radius: 6px;
+  background: #b4762c;
+  color: #fff;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pe2-onboarding-dismiss:hover { background: #9a6625; }
+
+/* ─── CHEATSHEET PANEL ─────────────────────────────────────── */
+.pe2-cheatsheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.15);
+  z-index: 90;
+}
+
+.pe2-cheatsheet {
+  position: fixed;
+  bottom: 56px;
+  right: 16px;
+  width: 380px;
+  max-height: 520px;
+  background: #fff;
+  border: 1px solid rgba(59,50,37,0.12);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  animation: pe2-cheatsheet-in 0.2s ease;
+}
+
+@keyframes pe2-cheatsheet-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pe2-cheatsheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(59,50,37,0.08);
+  flex-shrink: 0;
+}
+
+.pe2-cheatsheet-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3b3225;
+}
+
+.pe2-cheatsheet-close {
+  background: none;
+  border: none;
+  color: #b0a99e;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+}
+.pe2-cheatsheet-close:hover { color: #756b5e; background: rgba(59,50,37,0.04); }
+
+.pe2-cheatsheet-body {
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.pe2-cheatsheet-section {
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(59,50,37,0.05);
+}
+.pe2-cheatsheet-section:last-child { border-bottom: none; }
+
+.pe2-cheatsheet-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: #b0a99e;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.pe2-cheatsheet-features {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pe2-cheatsheet-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.pe2-cheatsheet-feature-icon {
+  width: 20px;
+  text-align: center;
+  font-size: 13px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.pe2-cheatsheet-feature-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #3b3225;
+  line-height: 1.5;
+}
+
+.pe2-cheatsheet-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pe2-cheatsheet-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 3px 0;
+}
+
+.pe2-cheatsheet-kbd {
+  display: inline-block;
+  min-width: 90px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(59,50,37,0.06);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #3b3225;
+  text-align: center;
+  border: 1px solid rgba(59,50,37,0.08);
+}
+
+.pe2-cheatsheet-code {
+  display: inline-block;
+  min-width: 90px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(59,50,37,0.04);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #b4762c;
+}
+
+.pe2-cheatsheet-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #756b5e;
+}
+
+/* ─── FEATURES LIST (Option B: hover preview) ──────────────── */
+.pe2-cs-features {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pe2-cs-feature-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: default;
+  position: relative;
+  transition: background-color 0.1s;
+}
+.pe2-cs-feature-row:hover { background-color: rgba(180,118,44,0.05); }
+
+.pe2-cs-feature-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(59,50,37,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pe2-cs-feature-text { display: flex; flex-direction: column; }
+
+.pe2-cs-feature-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3b3225;
+}
+
+.pe2-cs-feature-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #b0a99e;
+}
+
+/* Hover preview tooltip — appears to the left of the cheatsheet */
+.pe2-cs-feature-preview {
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #fff;
+  border: 1px solid rgba(59,50,37,0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  min-width: 200px;
+  max-width: 260px;
+  z-index: 100;
+  animation: pe2-preview-in 0.15s ease;
+  pointer-events: none;
+}
+
+@keyframes pe2-preview-in {
+  from { opacity: 0; transform: translateY(-50%) translateX(4px); }
+  to { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+/* Arrow pointing right toward the feature row */
+.pe2-cs-feature-preview::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-right: 1px solid rgba(59,50,37,0.12);
+  border-top: 1px solid rgba(59,50,37,0.12);
+}
+
+/* ─── MARKDOWN SPLIT VIEW (Option C: syntax | arrow | preview) ── */
+.pe2-cs-md-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pe2-cs-md-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(59,50,37,0.04);
+}
+.pe2-cs-md-row:last-child { border-bottom: none; }
+
+.pe2-cs-md-syntax {
+  width: 110px;
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #b4762c;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pe2-cs-md-arrow {
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pe2-cs-md-preview {
+  flex: 1;
+  min-width: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #3b3225;
+}
+
 /* ─── RESPONSIVE ───────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .pe2-ai-sidebar { display: none; }
   .pe2-content-column { width: 100%; }
   .pe2-scroll-area { padding: 32px 20px 60px; }
+  .pe2-cheatsheet { width: calc(100vw - 32px); right: 16px; }
+  .pe2-cs-feature-preview { display: none; }
 }

@@ -15,6 +15,7 @@ import {
   FloatingToolbar,
   SlashCommandMenu,
   SettingsDrawer,
+  EditorCheatsheet,
   useAutosave,
   useKeyboardShortcuts,
 } from './editor'
@@ -119,6 +120,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
 
   // UI state
   const [previewMode, setPreviewMode] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [aiSidebarOpen, setAiSidebarOpen] = useState(true)
 
@@ -1028,6 +1030,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
             lastSavedAt={lastSavedAt}
             cursorLine={cursorLine}
             cursorCol={cursorCol}
+            onHelpClick={() => setHelpOpen(h => !h)}
           />
         </div>
 
@@ -1080,7 +1083,12 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
           <div className="pe2-convo">
             <div className="pe2-messages">
               {messages.length === 0 && !streamingText && (
-                <p className="pe2-empty-msg">Select text and use the AI button, or try a quick action to start.</p>
+                <div className="pe2-empty-msg">
+                  <p style={{ marginBottom: '8px' }}>How to use Claw&apos;d:</p>
+                  <p>1. <strong>Select text</strong> in the editor → click AI in the floating toolbar</p>
+                  <p>2. Use a <strong>Quick Action</strong> above for whole-post help</p>
+                  <p>3. Or just <strong>type a question</strong> below!</p>
+                </div>
               )}
               {messages.map((msg, i) => (
                 <div key={i} className={`pe2-msg pe2-msg--${msg.role}`}>
@@ -1157,6 +1165,9 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
         onPublishedChange={(published) => setForm(f => ({ ...f, published }))}
         onFeaturedChange={(featured) => setForm(f => ({ ...f, featured }))}
       />
+
+      {/* Help / Cheatsheet */}
+      <EditorCheatsheet open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   )
 }
