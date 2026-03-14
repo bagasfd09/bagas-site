@@ -120,6 +120,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
 
   // UI state
   const [previewMode, setPreviewMode] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [aiSidebarOpen, setAiSidebarOpen] = useState(true)
 
@@ -1029,6 +1030,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
             lastSavedAt={lastSavedAt}
             cursorLine={cursorLine}
             cursorCol={cursorCol}
+            onHelpClick={() => setHelpOpen(h => !h)}
           />
         </div>
 
@@ -1165,7 +1167,7 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
       />
 
       {/* Help / Cheatsheet */}
-      <EditorCheatsheet />
+      <EditorCheatsheet open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   )
 }
