@@ -572,17 +572,73 @@ export default function PostForm({ post, type = 'post' }: PostFormProps) {
     }
   }, [replyInput, messages, sendMessage])
 
+  // Generate outline directly into editor when content is empty
+  const generateOutlineToEditor = useCallback(async () => {
+    if (!form.title.trim()) {
+      setToast({ message: 'Add a title first so AI can generate an outline', type: 'error' })
+      return
+    }
+    if (isStreaming) return
+
+    const controller = new AbortController()
+    abortRef.current = controller
+    setIsStreaming(true)
+
+    const systemPrompt = [
+      'You are a blog outline generator. Return ONLY the markdown outline.',
+      'Use ## for main sections and ### for subsections.',
+      'Include a brief intro paragraph placeholder under each heading.',
+      'Do not wrap in code fences. Return raw markdown ready to write in.',
+      'Respond in the same language as the title.',
+    ].join('\n')
+
+    const apiMessages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Generate a detailed blog post outline for: "${form.title}"${form.description ? `\nDescription: ${form.description}` : ''}` },
+    ]
+
+    setToast({ message: 'Generating outline...', type: 'success' })
+
+    try {
+      const result = await streamResponse(apiMessages, controller.signal, (_delta, accumulated) => {
+        setForm(f => ({ ...f, content: accumulated }))
+      })
+      if (result) {
+        setForm(f => ({ ...f, content: result }))
+        setMessages(prev => [...prev,
+          { role: 'user', text: `Generate outline for "${form.title}"` },
+          { role: 'assistant', text: 'Outline generated and inserted into the editor.' },
+        ])
+        setToast({ message: 'Outline inserted into editor!', type: 'success' })
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      setToast({ message: 'Failed to generate outline', type: 'error' })
+    } finally {
+      setIsStreaming(false)
+    }
+  }, [form.title, form.description, isStreaming, streamResponse])
+
   const handleQuickAction = useCallback((action: string) => {
+    // Outline: insert directly into editor if content is empty
+    if (action === 'outline') {
+      const contentTrimmed = form.content.replace(/\s/g, '')
+      if (contentTrimmed.length < 20) {
+        generateOutlineToEditor()
+        return
+      }
+    }
+
     const contentSnippet = form.content.substring(0, 2000)
     const prompts: Record<string, string> = {
       'improve': `Review and suggest improvements for this content:\n"${contentSnippet}..."`,
       'summarize': `Write a concise summary/excerpt for this blog post based on: "${contentSnippet}..."`,
       'grammar': `Check for grammar and style issues in this content:\n"${contentSnippet}..."`,
       'seo': `Generate an SEO-optimized meta description and suggest title improvements for a post titled "${form.title}" about: ${form.description || contentSnippet.substring(0, 200)}`,
-      'outline': `Generate a section outline for a blog post titled "${form.title}". Return the outline as markdown headings (## and ###).`,
+      'outline': `Generate a section outline for a blog post titled "${form.title}". Return the outline as markdown headings (## and ###). The post already has content, so suggest an improved structure.`,
     }
     sendMessage(prompts[action] || action)
-  }, [form.content, form.title, form.description, sendMessage])
+  }, [form.content, form.title, form.description, sendMessage, generateOutlineToEditor])
 
   // ─── FORMATTING ────────────────────────────────────────────
   const insertMarkdown = useCallback((prefix: string, suffix: string = '') => {
