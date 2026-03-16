@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 
 interface HeroRealisticProps {
   name: string
@@ -81,14 +80,14 @@ export default function HeroRealistic({ name, heroIntro, heroRealisticImage, her
       <div className="hero-realistic-photo-area">
         {/* Photo */}
         {heroRealisticImage && (
-          <Image
-            src={heroRealisticImage}
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={heroRealisticImage.includes('cloudinary.com')
+              ? heroRealisticImage.replace('/upload/', '/upload/f_auto,q_auto:best,w_1000/')
+              : heroRealisticImage}
             alt={`${name} photo`}
-            fill
-            priority
-            quality={100}
-            sizes="(max-width: 768px) 400px, (max-width: 1200px) 600px, 800px"
             className="hero-realistic-img"
+            fetchPriority="high"
           />
         )}
 
