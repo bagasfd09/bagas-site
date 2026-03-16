@@ -7,6 +7,7 @@ import SkillsGrid from '@/components/public/SkillsGrid'
 import AnimateIn from '@/components/public/AnimateIn'
 import AlienEyes from '@/components/public/AlienEyes'
 import HeroCTAButtons from '@/components/public/HeroCTAButtons'
+import HeroRealistic from '@/components/public/HeroRealistic'
 import ExperienceTimeline from '@/components/public/ExperienceTimeline'
 import { PersonJsonLd, WebsiteJsonLd } from '@/components/public/JsonLd'
 import type { Metadata } from 'next'
@@ -85,6 +86,12 @@ export default async function HomePage() {
   const linkedin = settings?.linkedin || ''
   const cvUrl = settings?.cvUrl || ''
   const heroImage = settings?.heroImage || ''
+  const heroStyle = settings?.heroStyle || 'playful'
+  const heroRealisticImage = settings?.heroRealisticImage || ''
+  const heroRealisticPills = settings?.heroRealisticPills || 'Next.js,TypeScript,React,Node.js'
+  const heroRealisticStat = settings?.heroRealisticStat || '3+ Years'
+  const heroRealisticStatLabel = settings?.heroRealisticStatLabel || 'in Software Development Experience'
+  const heroRealisticQuote = settings?.heroRealisticQuote || heroIntro
 
   // Section visibility & ordering
   const sectionConfig = [
@@ -189,88 +196,103 @@ export default async function HomePage() {
       <PersonJsonLd />
       <WebsiteJsonLd />
       {/* ── Hero ─────────────────────────────────────────────── */}
-      <section className="mb-16">
-        <div className="hero-content">
-          {/* Text side */}
-          <div className="hero-text">
-            <h1
-              className="font-serif font-normal mb-4"
-              style={{ fontSize: '2.5rem', letterSpacing: '-0.03em', lineHeight: 1.2 }}
-            >
-              Hey, I&apos;m {name}!
-            </h1>
-            <p className="text-base leading-relaxed mb-3" style={{ color: 'var(--muted)' }}>
-              {heroIntro}
-            </p>
-            <p className="text-sm mb-6 flex items-center gap-1.5" style={{ color: 'var(--muted)' }}>
-              Claude helped me build this website — thanks to him
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                <path d="M17.153 2.274a1.005 1.005 0 0 0-1.894-.009L13.78 6.601a.5.5 0 0 1-.222.265l-4.2 2.463a1.005 1.005 0 0 0 .009 1.738l4.149 2.368a.5.5 0 0 1 .223.26l1.578 4.32a1.005 1.005 0 0 0 1.895.008l1.48-4.336a.5.5 0 0 1 .218-.267l4.197-2.462a1.005 1.005 0 0 0-.009-1.738l-4.145-2.365a.5.5 0 0 1-.224-.261L17.153 2.274z" fill="#D97706"/>
-                <path d="M7.063 11.462a.737.737 0 0 0-1.39-.007l-.88 2.48a.367.367 0 0 1-.163.194l-2.42 1.42a.737.737 0 0 0 .006 1.275l2.39 1.363a.367.367 0 0 1 .163.191l.916 2.507a.737.737 0 0 0 1.39.006l.855-2.507a.367.367 0 0 1 .16-.196l2.42-1.42a.737.737 0 0 0-.007-1.274l-2.389-1.363a.367.367 0 0 1-.164-.191L7.063 11.462z" fill="#D97706"/>
-              </svg>
-            </p>
-            <HeroCTAButtons cvUrl={cvUrl} linkedin={linkedin} />
-          </div>
+      {heroStyle === 'realistic' ? (
+        <section className="mb-16">
+          <HeroRealistic
+            name={name}
+            heroIntro={heroRealisticQuote}
+            heroRealisticImage={heroRealisticImage}
+            heroRealisticPills={heroRealisticPills}
+            heroRealisticStat={heroRealisticStat}
+            heroRealisticStatLabel={heroRealisticStatLabel}
+            cvUrl={cvUrl}
+            linkedin={linkedin}
+          />
+        </section>
+      ) : (
+        <section className="mb-16">
+          <div className="hero-content">
+            {/* Text side */}
+            <div className="hero-text">
+              <h1
+                className="font-serif font-normal mb-4"
+                style={{ fontSize: '2.5rem', letterSpacing: '-0.03em', lineHeight: 1.2 }}
+              >
+                Hey, I&apos;m {name}!
+              </h1>
+              <p className="text-base leading-relaxed mb-3" style={{ color: 'var(--muted)' }}>
+                {heroIntro}
+              </p>
+              <p className="text-sm mb-6 flex items-center gap-1.5" style={{ color: 'var(--muted)' }}>
+                Claude helped me build this website — thanks to him
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                  <path d="M17.153 2.274a1.005 1.005 0 0 0-1.894-.009L13.78 6.601a.5.5 0 0 1-.222.265l-4.2 2.463a1.005 1.005 0 0 0 .009 1.738l4.149 2.368a.5.5 0 0 1 .223.26l1.578 4.32a1.005 1.005 0 0 0 1.895.008l1.48-4.336a.5.5 0 0 1 .218-.267l4.197-2.462a1.005 1.005 0 0 0-.009-1.738l-4.145-2.365a.5.5 0 0 1-.224-.261L17.153 2.274z" fill="#D97706"/>
+                  <path d="M7.063 11.462a.737.737 0 0 0-1.39-.007l-.88 2.48a.367.367 0 0 1-.163.194l-2.42 1.42a.737.737 0 0 0 .006 1.275l2.39 1.363a.367.367 0 0 1 .163.191l.916 2.507a.737.737 0 0 0 1.39.006l.855-2.507a.367.367 0 0 1 .16-.196l2.42-1.42a.737.737 0 0 0-.007-1.274l-2.389-1.363a.367.367 0 0 1-.164-.191L7.063 11.462z" fill="#D97706"/>
+                </svg>
+              </p>
+              <HeroCTAButtons cvUrl={cvUrl} linkedin={linkedin} />
+            </div>
 
-          {/* Mascot side */}
-          <div className="hero-mascot">
-            <div className="hero-mascot-circle">
-              {/* Decorative elements */}
-              <span className="hero-deco hero-rocket" aria-hidden="true">
-                <svg width="28" height="28" viewBox="0 0 64 74" fill="none">
-                  <path d="M32 4c0 0-16 12-16 36h8l8 16 8-16h8C48 16 32 4 32 4z" fill="#16a34a"/>
-                  <path d="M32 4c0 0-10 10-14 28h10l4 12 4-12h10C42 14 32 4 32 4z" fill="#4ade80"/>
-                  <circle cx="32" cy="28" r="5" fill="#fff"/>
-                  <circle cx="32" cy="28" r="3" fill="#bbf7d0"/>
-                  <path d="M26 40c-4 4-8 2-8 2s0-4 4-8" fill="#16a34a"/>
-                  <path d="M38 40c4 4 8 2 8 2s0-4-4-8" fill="#16a34a"/>
-                  {/* Normal flame */}
-                  <path className="rocket-flame" d="M28 56l4-12 4 12" fill="#ef4444"/>
-                  <path className="rocket-flame" d="M30 56l2-8 2 8" fill="#fbbf24"/>
-                  {/* Turbo flame — bigger, hidden by default */}
-                  <path className="rocket-turbo" d="M26 56l6-16 6 16" fill="#ef4444"/>
-                  <path className="rocket-turbo" d="M28 58l4-14 4 14" fill="#fbbf24"/>
-                  <path className="rocket-turbo" d="M30 62l2-10 2 10" fill="#fff" opacity="0.7"/>
-                </svg>
-              </span>
-              <span className="hero-deco hero-moon" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 64 64" fill="none">
-                  <path d="M44 8A28 28 0 1 0 56 44 22 22 0 0 1 44 8z" fill="#ffffff"/>
-                  <circle cx="30" cy="24" r="3" fill="#e5e7eb" opacity="0.5"/>
-                  <circle cx="22" cy="38" r="2" fill="#e5e7eb" opacity="0.4"/>
-                  <circle cx="36" cy="42" r="2.5" fill="#e5e7eb" opacity="0.3"/>
-                </svg>
-              </span>
-              <span className="hero-deco hero-star hero-star-1" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="#ffffff">
-                  <path d="M12 2l2.9 6.3L22 9.2l-5 4.6 1.3 7.2L12 17.8 5.7 21l1.3-7.2-5-4.6 7.1-.9z"/>
-                </svg>
-              </span>
-              <span className="hero-deco hero-star hero-star-2" aria-hidden="true">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="#ffffff">
-                  <path d="M12 2l2.9 6.3L22 9.2l-5 4.6 1.3 7.2L12 17.8 5.7 21l1.3-7.2-5-4.6 7.1-.9z"/>
-                </svg>
-              </span>
-              <span className="hero-deco hero-star hero-star-3" aria-hidden="true">
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="#ffffff">
-                  <path d="M12 2l2.9 6.3L22 9.2l-5 4.6 1.3 7.2L12 17.8 5.7 21l1.3-7.2-5-4.6 7.1-.9z"/>
-                </svg>
-              </span>
-              <span className="hero-deco hero-alien" aria-hidden="true">
-                <AlienEyes />
-              </span>
-              <Image
-                src={heroImage || '/images/bg-pic.png'}
-                alt={`${name} mascot`}
-                width={360}
-                height={360}
-                priority
-                quality={80}
-              />
+            {/* Mascot side */}
+            <div className="hero-mascot">
+              <div className="hero-mascot-circle">
+                {/* Decorative elements */}
+                <span className="hero-deco hero-rocket" aria-hidden="true">
+                  <svg width="28" height="28" viewBox="0 0 64 74" fill="none">
+                    <path d="M32 4c0 0-16 12-16 36h8l8 16 8-16h8C48 16 32 4 32 4z" fill="#16a34a"/>
+                    <path d="M32 4c0 0-10 10-14 28h10l4 12 4-12h10C42 14 32 4 32 4z" fill="#4ade80"/>
+                    <circle cx="32" cy="28" r="5" fill="#fff"/>
+                    <circle cx="32" cy="28" r="3" fill="#bbf7d0"/>
+                    <path d="M26 40c-4 4-8 2-8 2s0-4 4-8" fill="#16a34a"/>
+                    <path d="M38 40c4 4 8 2 8 2s0-4-4-8" fill="#16a34a"/>
+                    {/* Normal flame */}
+                    <path className="rocket-flame" d="M28 56l4-12 4 12" fill="#ef4444"/>
+                    <path className="rocket-flame" d="M30 56l2-8 2 8" fill="#fbbf24"/>
+                    {/* Turbo flame — bigger, hidden by default */}
+                    <path className="rocket-turbo" d="M26 56l6-16 6 16" fill="#ef4444"/>
+                    <path className="rocket-turbo" d="M28 58l4-14 4 14" fill="#fbbf24"/>
+                    <path className="rocket-turbo" d="M30 62l2-10 2 10" fill="#fff" opacity="0.7"/>
+                  </svg>
+                </span>
+                <span className="hero-deco hero-moon" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 64 64" fill="none">
+                    <path d="M44 8A28 28 0 1 0 56 44 22 22 0 0 1 44 8z" fill="#ffffff"/>
+                    <circle cx="30" cy="24" r="3" fill="#e5e7eb" opacity="0.5"/>
+                    <circle cx="22" cy="38" r="2" fill="#e5e7eb" opacity="0.4"/>
+                    <circle cx="36" cy="42" r="2.5" fill="#e5e7eb" opacity="0.3"/>
+                  </svg>
+                </span>
+                <span className="hero-deco hero-star hero-star-1" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#ffffff">
+                    <path d="M12 2l2.9 6.3L22 9.2l-5 4.6 1.3 7.2L12 17.8 5.7 21l1.3-7.2-5-4.6 7.1-.9z"/>
+                  </svg>
+                </span>
+                <span className="hero-deco hero-star hero-star-2" aria-hidden="true">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="#ffffff">
+                    <path d="M12 2l2.9 6.3L22 9.2l-5 4.6 1.3 7.2L12 17.8 5.7 21l1.3-7.2-5-4.6 7.1-.9z"/>
+                  </svg>
+                </span>
+                <span className="hero-deco hero-star hero-star-3" aria-hidden="true">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="#ffffff">
+                    <path d="M12 2l2.9 6.3L22 9.2l-5 4.6 1.3 7.2L12 17.8 5.7 21l1.3-7.2-5-4.6 7.1-.9z"/>
+                  </svg>
+                </span>
+                <span className="hero-deco hero-alien" aria-hidden="true">
+                  <AlienEyes />
+                </span>
+                <Image
+                  src={heroImage || '/images/bg-pic.png'}
+                  alt={`${name} mascot`}
+                  width={360}
+                  height={360}
+                  priority
+                  quality={80}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── Dynamic Sections (ordered by settings) ─────────── */}
       {sectionConfig

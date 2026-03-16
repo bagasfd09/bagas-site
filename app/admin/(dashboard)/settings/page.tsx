@@ -22,7 +22,13 @@ interface Settings {
   siteName: string
   tagline: string
   heroIntro: string
+  heroStyle: string
   heroImage: string
+  heroRealisticImage: string
+  heroRealisticPills: string
+  heroRealisticStat: string
+  heroRealisticStatLabel: string
+  heroRealisticQuote: string
   cvUrl: string
   sidebarBio: string
   github: string
@@ -61,7 +67,13 @@ const defaultSettings: Settings = {
   siteName: '',
   tagline: '',
   heroIntro: '',
+  heroStyle: 'playful',
   heroImage: '',
+  heroRealisticImage: '',
+  heroRealisticPills: 'Next.js,TypeScript,React,Node.js',
+  heroRealisticStat: '3+ Years',
+  heroRealisticStatLabel: 'in Software Development Experience',
+  heroRealisticQuote: '',
   cvUrl: '',
   sidebarBio: '',
   github: '',
@@ -255,7 +267,13 @@ export default function SettingsPage() {
           siteName: data.siteName || '',
           tagline: data.tagline || '',
           heroIntro: data.heroIntro || '',
+          heroStyle: data.heroStyle || 'playful',
           heroImage: data.heroImage || '',
+          heroRealisticImage: data.heroRealisticImage || '',
+          heroRealisticPills: data.heroRealisticPills || 'Next.js,TypeScript,React,Node.js',
+          heroRealisticStat: data.heroRealisticStat || '3+ Years',
+          heroRealisticStatLabel: data.heroRealisticStatLabel || 'in Software Development Experience',
+          heroRealisticQuote: data.heroRealisticQuote || '',
           cvUrl: data.cvUrl || '',
           sidebarBio: data.sidebarBio || '',
           github: data.github || '',
@@ -477,6 +495,43 @@ export default function SettingsPage() {
         {/* Homepage tab */}
         {activeTab === 'homepage' && (
           <SectionCard title="Hero Section" desc="Content shown in the homepage hero area" icon={Layout}>
+            <Field label="Hero Style" hint="Choose the hero section layout">
+              <div style={{ display: 'flex', gap: '12px' }}>
+                {[
+                  { value: 'playful', label: 'Playful', desc: 'Cartoon mascot with decorations' },
+                  { value: 'realistic', label: 'Realistic', desc: 'Professional photo with floating pills' },
+                ].map((option) => (
+                  <label
+                    key={option.value}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      padding: '16px',
+                      borderRadius: '10px',
+                      border: `2px solid ${form.heroStyle === option.value ? 'var(--admin-accent)' : 'var(--admin-border)'}`,
+                      background: form.heroStyle === option.value ? 'rgba(180, 118, 44, 0.05)' : 'var(--admin-surface)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="radio"
+                        name="heroStyle"
+                        value={option.value}
+                        checked={form.heroStyle === option.value}
+                        onChange={() => updateForm({ heroStyle: option.value })}
+                        style={{ accentColor: 'var(--admin-accent)' }}
+                      />
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--admin-text-primary)' }}>{option.label}</span>
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)', paddingLeft: '24px' }}>{option.desc}</span>
+                  </label>
+                ))}
+              </div>
+            </Field>
             <Field label="Hero Introduction">
               <textarea
                 value={form.heroIntro}
@@ -486,13 +541,109 @@ export default function SettingsPage() {
                 placeholder="Short intro shown in the hero section..."
               />
             </Field>
-            <Field label="Mascot / Hero Image URL" hint="Leave blank to use the default mascot">
+            <Field label="Mascot / Hero Image URL" hint="Used in Playful mode. Leave blank for default mascot">
               <input
                 type="url"
                 value={form.heroImage}
                 onChange={(e) => updateForm({ heroImage: e.target.value })}
                 className="admin-input"
                 placeholder="https://example.com/mascot.png"
+              />
+            </Field>
+            <Field label="Realistic Photo" hint="Used in Realistic mode. Upload your professional photo (PNG with transparent bg recommended)">
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={form.heroRealisticImage}
+                  onChange={(e) => updateForm({ heroRealisticImage: e.target.value })}
+                  className="admin-input"
+                  placeholder="/images/bagas-realistic.png"
+                  readOnly
+                  style={{ flex: 1 }}
+                />
+                <label
+                  className="admin-btn admin-btn-secondary"
+                  style={{ padding: '8px 16px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  Upload
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const fd = new FormData()
+                      fd.append('file', file)
+                      fd.append('folder', 'profile')
+                      try {
+                        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+                        const data = await res.json()
+                        if (data.path) {
+                          updateForm({ heroRealisticImage: data.path })
+                          setToast({ message: 'Photo uploaded', type: 'success' })
+                        } else {
+                          setToast({ message: data.error || 'Upload failed', type: 'error' })
+                        }
+                      } catch {
+                        setToast({ message: 'Upload failed', type: 'error' })
+                      }
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+                {form.heroRealisticImage && (
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-danger"
+                    style={{ padding: '8px 12px' }}
+                    onClick={() => updateForm({ heroRealisticImage: '' })}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </Field>
+            <Field label="Floating Tech Pills" hint="Comma-separated list of skills shown around the photo (Realistic mode)">
+              <input
+                type="text"
+                value={form.heroRealisticPills}
+                onChange={(e) => updateForm({ heroRealisticPills: e.target.value })}
+                className="admin-input"
+                placeholder="Next.js,TypeScript,React,Node.js"
+              />
+            </Field>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ flex: 1 }}>
+                <Field label="Stat Number" hint="e.g. 3+ Years">
+                  <input
+                    type="text"
+                    value={form.heroRealisticStat}
+                    onChange={(e) => updateForm({ heroRealisticStat: e.target.value })}
+                    className="admin-input"
+                    placeholder="3+ Years"
+                  />
+                </Field>
+              </div>
+              <div style={{ flex: 1 }}>
+                <Field label="Stat Label" hint="e.g. in Software Development Experience">
+                  <input
+                    type="text"
+                    value={form.heroRealisticStatLabel}
+                    onChange={(e) => updateForm({ heroRealisticStatLabel: e.target.value })}
+                    className="admin-input"
+                    placeholder="in Software Development Experience"
+                  />
+                </Field>
+              </div>
+            </div>
+            <Field label="Testimonial Quote" hint="Short quote shown beside the photo (Realistic mode)">
+              <textarea
+                value={form.heroRealisticQuote}
+                onChange={(e) => updateForm({ heroRealisticQuote: e.target.value })}
+                className="admin-textarea"
+                rows={2}
+                placeholder="He is an exceptional developer and problem solver..."
               />
             </Field>
             <Field label="CV / Resume (PDF)" hint="Upload your CV to enable the Download CV button">

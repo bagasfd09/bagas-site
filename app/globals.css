@@ -1848,6 +1848,304 @@ a.skill-card--confident:hover {
   to   { opacity: 1; transform: none; }
 }
 
+/* ─── HERO REALISTIC ──────────────────────────────────────── */
+
+.hero-realistic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 1.5rem 2rem 0;
+  margin-top: -1rem;
+  /* Break out of max-w-[740px] px-6 container to fill <main> */
+  width: calc(100vw - 300px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.hero-realistic-header {
+  text-align: center;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: hero-text-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero-realistic-hello-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.hero-realistic-hello-accent {
+  position: absolute;
+  top: -18px;
+  right: -24px;
+  transform: rotate(-10deg);
+}
+
+.hero-realistic-hello {
+  display: inline-block;
+  padding: 0.4rem 1.25rem;
+  background: var(--bg);
+  border: 1px solid var(--border, #e5e1da);
+  border-radius: 100px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text);
+  min-width: 150px;
+  text-align: center;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.hero-realistic-hello.hello-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hero-realistic-hello.hello-hidden {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.hero-realistic-title {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 4.5rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.hero-realistic-name {
+  color: var(--link);
+}
+
+/* Photo area */
+.hero-realistic-photo-area {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  height: 640px;
+  margin-top: -6rem;
+  animation: hero-mascot-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+
+/* Photo */
+.hero-realistic-img {
+  object-fit: contain;
+  object-position: center top;
+  z-index: 2;
+}
+
+.hero-realistic-img-placeholder {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  height: 500px;
+  background: var(--border, #e8dcc8);
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* Floating pills */
+.hero-realistic-pill {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: 100px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  z-index: 3;
+  white-space: nowrap;
+}
+
+.hero-realistic-pill.pill-tl { top: 80px; left: 30px; animation: pill-float 4s ease-in-out infinite; }
+.hero-realistic-pill.pill-tr { top: 160px; right: 20px; animation: pill-float 4s ease-in-out 1s infinite; }
+.hero-realistic-pill.pill-bl { bottom: 180px; left: 50px; animation: pill-float 4s ease-in-out 0.5s infinite; }
+.hero-realistic-pill.pill-br { bottom: 100px; right: 30px; animation: pill-float 4s ease-in-out 1.5s infinite; }
+
+@keyframes pill-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Stat */
+.hero-realistic-stat {
+  position: absolute;
+  top: 240px;
+  right: -80px;
+  text-align: right;
+  z-index: 3;
+}
+
+.hero-realistic-stat-number {
+  display: block;
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.hero-realistic-stat-label {
+  font-size: 0.875rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Quote */
+.hero-realistic-quote {
+  position: absolute;
+  bottom: 320px;
+  left: -160px;
+  max-width: 280px;
+  z-index: 3;
+  color: var(--muted);
+}
+
+.hero-realistic-quote svg {
+  margin-bottom: 0.5rem;
+  opacity: 0.25;
+}
+
+.hero-realistic-quote p {
+  font-size: 0.875rem;
+  font-style: italic;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* CTA */
+.hero-realistic-cta {
+  position: relative;
+  z-index: 4;
+  margin-top: 4rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: hero-btn-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+}
+
+.hero-realistic-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 100px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hero-realistic-btn-primary {
+  background: var(--link);
+  color: #fff;
+  border: 2px solid var(--link);
+}
+
+.hero-realistic-btn-primary:hover {
+  background: transparent;
+  color: var(--link);
+}
+
+.hero-realistic-btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--border, #d9d4cc);
+}
+
+.hero-realistic-btn-secondary:hover {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .hero-realistic-circle {
+  opacity: 0.7;
+}
+
+/* Tablet — with sidebar */
+@media (max-width: 1200px) {
+  .hero-realistic-title { font-size: 3.5rem; }
+  .hero-realistic-photo-area { max-width: 580px; height: 480px; }
+  .hero-realistic-circle { width: 440px; height: 440px; }
+  .hero-realistic-img { width: 380px; height: 480px; }
+  .hero-realistic-stat { right: -40px; }
+  .hero-realistic-quote { left: -40px; max-width: 220px; }
+  .hero-realistic-pill.pill-tl { left: 0; }
+  .hero-realistic-pill.pill-tr { right: 0; }
+  .hero-realistic-pill.pill-bl { left: 10px; }
+  .hero-realistic-pill.pill-br { right: 0; }
+}
+
+/* Mobile — no sidebar */
+@media (max-width: 768px) {
+  .hero-realistic {
+    width: 100vw;
+    min-height: auto;
+    padding: 2rem 1rem 0;
+    margin-top: 0;
+  }
+
+  .hero-realistic-title {
+    font-size: 2.25rem;
+  }
+
+  .hero-realistic-photo-area {
+    max-width: 340px;
+    height: 380px;
+    margin-top: -3rem;
+  }
+
+  .hero-realistic-img {
+    object-position: center top;
+  }
+
+  .hero-realistic-img-placeholder {
+    width: 260px;
+    height: 340px;
+  }
+
+  .hero-realistic-pill { display: none; }
+  .hero-realistic-stat { display: none; }
+  .hero-realistic-quote { display: none; }
+
+  .hero-realistic-cta {
+    margin-top: 2rem;
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+  }
+
+  .hero-realistic-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 24px;
+  }
+}
+
 /* ─── HOVER MICRO-INTERACTIONS ─────────────────────────────── */
 
 /* Hero button press effect */
