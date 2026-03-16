@@ -24,7 +24,9 @@ export async function PUT(request: NextRequest) {
   try {
     const data = await request.json()
     const {
-      name, siteName, tagline, heroIntro, heroImage, cvUrl, bio, sidebarBio,
+      name, siteName, tagline, heroIntro, heroStyle, heroImage, heroRealisticImage,
+      heroRealisticPills, heroRealisticStat, heroRealisticStatLabel, heroRealisticQuote,
+      cvUrl, bio, sidebarBio,
       github, linkedin, twitter, email, bluesky, rssEnabled,
       showExperience, showBlog, showNotes, showSkills, showProjects,
       orderExperience, orderBlog, orderNotes, orderSkills, orderProjects,
@@ -37,7 +39,13 @@ export async function PUT(request: NextRequest) {
         siteName,
         tagline,
         heroIntro: heroIntro || '',
+        heroStyle: heroStyle || 'playful',
         heroImage: heroImage || null,
+        heroRealisticImage: heroRealisticImage || null,
+        heroRealisticPills: heroRealisticPills || 'Next.js,TypeScript,React,Node.js',
+        heroRealisticStat: heroRealisticStat || '3+ Years',
+        heroRealisticStatLabel: heroRealisticStatLabel || 'in Software Development Experience',
+        heroRealisticQuote: heroRealisticQuote || '',
         cvUrl: cvUrl || '',
         bio,
         sidebarBio,
