@@ -575,15 +575,16 @@ export default function SettingsPage() {
                       if (!file) return
                       const fd = new FormData()
                       fd.append('file', file)
-                      fd.append('folder', 'profile')
+                      fd.append('upload_preset', 'lxqdss4t')
+                      fd.append('folder', 'hero')
                       try {
-                        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+                        const res = await fetch('https://api.cloudinary.com/v1_1/dpust3pte/image/upload', { method: 'POST', body: fd })
                         const data = await res.json()
-                        if (data.path) {
-                          updateForm({ heroRealisticImage: data.path })
-                          setToast({ message: 'Photo uploaded', type: 'success' })
+                        if (data.secure_url) {
+                          updateForm({ heroRealisticImage: data.secure_url })
+                          setToast({ message: 'Photo uploaded to CDN', type: 'success' })
                         } else {
-                          setToast({ message: data.error || 'Upload failed', type: 'error' })
+                          setToast({ message: data.error?.message || 'Upload failed', type: 'error' })
                         }
                       } catch {
                         setToast({ message: 'Upload failed', type: 'error' })
