@@ -2307,6 +2307,18 @@ a.skill-card--confident:hover {
   }
 }
 
+/* Small phones — stack CTA buttons full width */
+@media (max-width: 400px) {
+  .hero-realistic {
+    grid-template-areas:
+      "header  header"
+      "stat    skills"
+      "quote   quote"
+      "cta-pri cta-pri"
+      "cta-sec cta-sec";
+  }
+}
+
 /* Reduced motion — disable bento animations */
 @media (max-width: 1024px) and (prefers-reduced-motion: reduce) {
   .hero-realistic-header,
