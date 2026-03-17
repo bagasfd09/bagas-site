@@ -70,7 +70,20 @@ export default function HeroRealistic({ name, heroIntro, heroRealisticImage, her
           </svg>
         </div>
         <h1 className="hero-realistic-title">
-          I&apos;m <span className="hero-realistic-name">{name}</span>,👋
+          I&apos;m{' '}
+          {/* Inline avatar — visible on mobile only */}
+          {heroRealisticImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={heroRealisticImage.includes('cloudinary.com')
+                ? heroRealisticImage.replace('/upload/', '/upload/f_auto,q_auto:best,w_600/')
+                : heroRealisticImage}
+              alt=""
+              className="hero-realistic-inline-photo"
+              aria-hidden="true"
+            />
+          )}
+          <span className="hero-realistic-name">{name}</span>,👋
           <br />
           A Software Developer
         </h1>
@@ -79,30 +92,34 @@ export default function HeroRealistic({ name, heroIntro, heroRealisticImage, her
       {/* Center: photo + circle + pills */}
       <div className="hero-realistic-photo-area">
         {/* Photo */}
-        {heroRealisticImage && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={heroRealisticImage.includes('cloudinary.com')
-              ? heroRealisticImage.replace('/upload/', '/upload/f_auto,q_auto:best,w_1000/')
-              : heroRealisticImage}
-            alt={`${name} photo`}
-            className="hero-realistic-img"
-            fetchPriority="high"
-          />
-        )}
+        <div className="hero-realistic-photo-ring">
+          {heroRealisticImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={heroRealisticImage.includes('cloudinary.com')
+                ? heroRealisticImage.replace('/upload/', '/upload/f_auto,q_auto:best,w_1000/')
+                : heroRealisticImage}
+              alt={`${name} photo`}
+              className="hero-realistic-img"
+              fetchPriority="high"
+            />
+          )}
 
-        {!heroRealisticImage && (
-          <div className="hero-realistic-img-placeholder">
-            <span>Upload your photo in Admin &rarr; Settings</span>
-          </div>
-        )}
+          {!heroRealisticImage && (
+            <div className="hero-realistic-img-placeholder">
+              <span>Upload your photo in Admin &rarr; Settings</span>
+            </div>
+          )}
+        </div>
 
         {/* Floating tech pills */}
-        {pills.map((pill) => (
-          <span key={pill.label} className={`hero-realistic-pill ${pill.pos}`}>
-            {pill.label}
-          </span>
-        ))}
+        <div className="hero-realistic-pills-group">
+          {pills.map((pill) => (
+            <span key={pill.label} className={`hero-realistic-pill ${pill.pos}`}>
+              {pill.label}
+            </span>
+          ))}
+        </div>
 
         {/* Years stat */}
         <div className="hero-realistic-stat">
@@ -124,11 +141,13 @@ export default function HeroRealistic({ name, heroIntro, heroRealisticImage, her
         {cvUrl?.trim() && (
           <a href={cvUrl} download className="hero-realistic-btn hero-realistic-btn-primary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
             </svg>
-            Download CV
+            Grab My Resume
           </a>
         )}
         {linkedin?.trim() && (

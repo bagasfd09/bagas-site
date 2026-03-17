@@ -1994,6 +1994,17 @@ a.skill-card--confident:hover {
   50% { transform: translateY(-6px); }
 }
 
+/* Wrapper divs — transparent on desktop */
+.hero-realistic-pills-group,
+.hero-realistic-photo-ring {
+  display: contents;
+}
+
+/* Inline photo — hidden on desktop, shown on mobile */
+.hero-realistic-inline-photo {
+  display: none;
+}
+
 /* Stat */
 .hero-realistic-stat {
   position: absolute;
@@ -2087,13 +2098,25 @@ a.skill-card--confident:hover {
   color: var(--bg);
 }
 
+/* Bento card entrance animation */
+@keyframes bento-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* Dark mode adjustments */
 [data-theme="dark"] .hero-realistic-circle {
   opacity: 0.7;
 }
 
-/* Tablet — with sidebar */
-@media (max-width: 1200px) {
+/* Tablet (iPad landscape) — with sidebar */
+@media (min-width: 1025px) and (max-width: 1200px) {
   .hero-realistic-title { font-size: 3.5rem; }
   .hero-realistic-photo-area { max-width: 580px; height: 480px; }
   .hero-realistic-circle { width: 440px; height: 440px; }
@@ -2106,49 +2129,193 @@ a.skill-card--confident:hover {
   .hero-realistic-pill.pill-br { right: 0; }
 }
 
-/* Mobile — no sidebar */
-@media (max-width: 768px) {
+/* iPad portrait + Mobile — Bento Card Grid with inline photo */
+@media (max-width: 1024px) {
   .hero-realistic {
-    width: 100vw;
+    width: 100%;
+    left: auto;
+    transform: none;
     min-height: auto;
-    padding: 2rem 1rem 0;
+    padding: 1.5rem 0 0;
     margin-top: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "header  header"
+      "stat    skills"
+      "quote   quote"
+      "cta-pri cta-sec";
+    gap: 12px;
+    overflow: visible;
+  }
+
+  /* Header area */
+  .hero-realistic-header {
+    grid-area: header;
+    animation: bento-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0ms both;
   }
 
   .hero-realistic-title {
-    font-size: 2.25rem;
+    font-size: 2.5rem;
   }
 
+  /* Inline photo avatar — visible */
+  .hero-realistic-inline-photo {
+    display: inline-block;
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    object-fit: cover;
+    object-position: center 15%;
+    vertical-align: middle;
+    margin: 0 6px;
+    background: var(--text);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Hide the big photo area */
   .hero-realistic-photo-area {
-    max-width: 340px;
-    height: 380px;
-    margin-top: -3rem;
+    display: contents;
   }
 
-  .hero-realistic-img {
-    object-position: center top;
+  .hero-realistic-photo-ring {
+    display: none;
   }
 
-  .hero-realistic-img-placeholder {
-    width: 260px;
-    height: 340px;
-  }
-
-  .hero-realistic-pill { display: none; }
-  .hero-realistic-stat { display: none; }
-  .hero-realistic-quote { display: none; }
-
-  .hero-realistic-cta {
-    margin-top: 2rem;
+  /* Stat card */
+  .hero-realistic-stat {
+    grid-area: stat;
+    position: static;
+    display: flex;
     flex-direction: column;
-    width: 100%;
     align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1.25rem 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    animation: bento-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 50ms both;
   }
 
-  .hero-realistic-btn {
-    width: 100%;
+  .dark .hero-realistic-stat {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .hero-realistic-stat-number {
+    font-size: 2.25rem;
+    color: var(--link);
+  }
+
+  .hero-realistic-stat-label {
+    font-size: 0.8125rem;
+    margin-top: 0.25rem;
+  }
+
+  /* Skills card (pills group) */
+  .hero-realistic-pills-group {
+    grid-area: skills;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    align-content: center;
     justify-content: center;
-    padding: 14px 24px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1rem 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    animation: bento-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 100ms both;
+  }
+
+  .dark .hero-realistic-pills-group {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .hero-realistic-pills-group:empty {
+    display: none;
+  }
+
+  .hero-realistic-pills-group .hero-realistic-pill {
+    position: static;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+    animation: none;
+  }
+
+  /* Quote card */
+  .hero-realistic-quote {
+    grid-area: quote;
+    position: static;
+    max-width: none;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    animation: bento-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 150ms both;
+  }
+
+  .dark .hero-realistic-quote {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .hero-realistic-quote p {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* CTA — flatten into grid */
+  .hero-realistic-cta {
+    display: contents;
+  }
+
+  .hero-realistic-btn-primary {
+    grid-area: cta-pri;
+    justify-content: center;
+    padding: 14px 16px;
+    animation: bento-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
+  }
+
+  .hero-realistic-btn-secondary {
+    grid-area: cta-sec;
+    justify-content: center;
+    padding: 14px 16px;
+    animation: bento-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 250ms both;
+  }
+}
+
+/* Phone-specific adjustments */
+@media (max-width: 768px) {
+  .hero-realistic {
+    padding: 1.5rem 1rem 0;
+  }
+
+  .hero-realistic-title {
+    font-size: 2rem;
+  }
+
+  .hero-realistic-inline-photo {
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+    margin: 0 4px;
+  }
+}
+
+/* Reduced motion — disable bento animations */
+@media (max-width: 1024px) and (prefers-reduced-motion: reduce) {
+  .hero-realistic-header,
+  .hero-realistic-stat,
+  .hero-realistic-pills-group,
+  .hero-realistic-quote,
+  .hero-realistic-btn-primary,
+  .hero-realistic-btn-secondary {
+    animation: none !important;
   }
 }
 
