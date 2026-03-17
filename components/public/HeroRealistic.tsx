@@ -83,7 +83,7 @@ export default function HeroRealistic({ name, heroIntro, heroRealisticImage, her
               aria-hidden="true"
             />
           )}
-          <span className="hero-realistic-name">{name}</span>,👋
+          <span className="hero-realistic-name">{name}</span>,<span className="hero-realistic-wave" aria-hidden="true">👋</span>
           <br />
           A Software Developer
         </h1>
