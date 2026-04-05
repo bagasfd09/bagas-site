@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         ...(settings.agentId ? { 'x-openclaw-agent-id': settings.agentId } : {}),
       },
       body: JSON.stringify({
-        model: `openclaw:${settings.agentId || 'main'}`,
+        model: settings.agentId ? `openclaw/${settings.agentId}` : 'openclaw',
         messages: chatMessages,
         stream: true,
       }),
@@ -42,8 +42,13 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text()
+      let errorMsg = `OpenClaw error: ${response.status}`
+      try {
+        const parsed = JSON.parse(errorText)
+        errorMsg = parsed?.error?.message || errorMsg
+      } catch { /* use raw status */ }
       return new Response(
-        JSON.stringify({ error: `OpenClaw error: ${response.status} ${errorText}` }),
+        JSON.stringify({ error: errorMsg }),
         { status: response.status, headers: { 'Content-Type': 'application/json' } }
       )
     }

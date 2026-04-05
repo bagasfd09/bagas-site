@@ -423,7 +423,7 @@ export default function MascotSettingsPage() {
                 <div className="adm-mascot-field">
                   <label className="admin-label">Agent ID</label>
                   <input className="admin-input" value={settings.agentId} onChange={(e) => update('agentId', e.target.value)} placeholder="main" />
-                  <span className="admin-hint">Target agent for chat — uses openclaw:main by default</span>
+                  <span className="admin-hint">Target agent for chat — uses openclaw/main by default</span>
                 </div>
               </div>
             </div>
